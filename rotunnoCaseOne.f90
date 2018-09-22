@@ -169,11 +169,6 @@ contains
         )
     enddo
 
-    !v(:,:,1) = ( &
-    !    v(:,:,tauN) - &
-    !    (u(:,:,1) + u(:,:,tauN)) * dtau * sin(latitude * pi / 180) &
-    !)
-
 end subroutine solveCaseOne
 
 ! Term in integrand of psi
