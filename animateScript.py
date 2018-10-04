@@ -1,8 +1,20 @@
-from rotunno import animateVelocity, animatePsi
-from rotunno import read
+import xarray as xr
+import matplotlib.pyplot as plt
+from rotunno import animateVelocity, animatePsi, plotVelocity, plotPsi
 
-psi, u, w, xi, zeta, tau = \
-read('./output/rotunnoCaseOne_20180618_00_27_19.npz')
+plt.close('all')
 
-animateVelocity(u,w,xi,zeta,tau)
-animatePsi(psi,xi,zeta,tau)
+data = xr.open_dataset('rotunnoCaseTwo.nc')
+
+psi = data['psi'].values.T
+u = data['u'].values.T
+v = data['v'].values.T
+w = data['w'].values.T
+xi = data['xi'].values
+zeta = data['zeta'].values
+tau = data['tau'].values
+
+# Calculate dimensional variables
+
+plotVelocity(u,w,xi,zeta,tau)
+plotPsi(psi,xi,zeta,tau)

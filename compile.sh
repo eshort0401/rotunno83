@@ -1,5 +1,6 @@
 #!/bin/bash
-gfortran -g -fcheck=all -Wall -fdefault-integer-8 -fdefault-real-8 \
+gfortran -g -ffpe-trap=zero,invalid,overflow,underflow \
+ -fcheck=all -Wall -fdefault-integer-8 -fdefault-real-8 \
 -I/usr/local/include \
 ../fortran_libraries/math.f90  \
 ../fortran_libraries/nc_tools.f90 \

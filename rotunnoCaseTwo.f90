@@ -1,4 +1,4 @@
-program rotunnoCaseOne
+program rotunnoCaseTwo
 
     use nc_tools
     use math
@@ -8,23 +8,22 @@ program rotunnoCaseOne
 
     ! Third dimension (time) size should be a multiple of 4.
     complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
-    real :: xi(81), zeta(41), tau(32)
+    real :: xi(81), zeta(41), tau(32), k(2000)
 
     !$OMP PARALLEL
 
-    call solveCaseOne(&
+    call solveCaseTwo(&
         -2.0, 2.0, size(xi), &! xiMin, xiMax, xiN
-        0.0, 4.0, size(zeta), &! zeta
-        -6.0, 6.0, 481, &! xip
-        0.0, 6.0, 241, &! zetap
-        size(tau), 7.27*10.0**(-3), 10.0**3, 0.2, 80.0, &! tauN, beta, Atilde, xi0
+        0.0, 4.0, size(zeta), &! zetaMin, zetaMax, zetaN
+        0.0, 20.0, size(k), &! k
+        size(tau), 7.27*10.0**(-3), 10.0**3, 0.2, 5.0, &! tauN, beta, Atilde, xi0, latitude
         psi, u, v, w, xi, zeta, tau &
     )
 
     !$OMP END PARALLEL
 
     ncid = export_nc_3d( &
-        './rotunnoCaseOne.nc',real(psi), 'psi', &
+        './rotunnoCaseTwo.nc',real(psi), 'psi', &
         xi, zeta, tau, &
         int(size(xi), 4), int(size(zeta), 4), int(size(tau), 4), &
         'xi','zeta','tau', &
@@ -32,50 +31,46 @@ program rotunnoCaseOne
     )
 
     ncid = add_var_nc_3d( &
-        './rotunnoCaseOne.nc',real(u), 'u', &
+        './rotunnoCaseTwo.nc',real(u), 'u', &
         int(size(xi), 4), int(size(zeta), 4), int(size(tau), 4), &
         'xi','zeta','tau' &
     )
 
     ncid = add_var_nc_3d( &
-        './rotunnoCaseOne.nc',real(v), 'v', &
+        './rotunnoCaseTwo.nc',real(v), 'v', &
         int(size(xi), 4), int(size(zeta), 4), int(size(tau), 4), &
         'xi','zeta','tau' &
     )
 
     ncid = add_var_nc_3d( &
-        './rotunnoCaseOne.nc',real(w), 'w', &
+        './rotunnoCaseTwo.nc',real(w), 'w', &
         int(size(xi), 4), int(size(zeta), 4), int(size(tau), 4), &
         'xi','zeta','tau' &
     )
 
 contains
-    subroutine solveCaseOne( &
+    subroutine solveCaseTwo( &
         xiMin, xiMax, xiN, &! xi
         zetaMin, zetaMax, zetaN, &! zeta
-        xipMin, xipMax, xipN, &! xip
-        zetapMin, zetapMax, zetapN, &! zetap
+        kMin, kMax, kN, &! k (wavenumber)
         tauN, beta, Atilde, xi0, latitude, &! other parameters
         psi, u, v, w, xi, zeta, tau &! outputs
      )
 
     ! Inputs
-    real, intent(in) :: xiMin, xiMax, zetaMin, zetaMax
-    real, intent(in) :: xipMin, xipMax, zetapMin, zetapMax
-    integer, intent(in) :: xiN, zetaN, xipN, zetapN
+    real, intent(in) :: xiMin, xiMax, zetaMin, zetaMax, kMin, kMax
+    integer, intent(in) :: xiN, zetaN, kN
     integer, intent(in) :: tauN ! Should be a multiple of 4
     real, intent(in) :: beta, Atilde, xi0, latitude
 
     ! Subroutine variables
-    integer :: i, j, k, l, v0_ind, ind_i, ind_im1
-    real :: xip(xipN), zetap(zetapN)
+    integer :: i, j, l, m, v0_ind, ind_i, ind_im1
     real :: dxi, dzeta, dtau
-    complex :: int_dxip_dzetap(zetapN)
-    logical :: mask_int_dxip_dzetap(zetapN)
-    complex :: int_dxip(xipN)
-    logical :: mask_int_dxip(xipN)
+    complex :: int_fun_k(kN)
+    real :: k(kN)
+
+    ! Constants
     real, parameter :: pi  = 4 * atan(1.0_8)
-    complex :: psi_n_tau(xiN,zetaN)
 
     ! Outputs
     complex, intent(out) :: psi(xiN,zetaN,tauN)
@@ -87,8 +82,7 @@ contains
     ! Initialise arrays
     xi=createArray(xiMin, xiMax, xiN)
     zeta=createArray(zetaMin, zetaMax, zetaN)
-    xip=createArray(xipMin, xipMax, xipN)
-    zetap=createArray(zetapMin, zetapMax, zetapN)
+    k=createArray(kMin, kMax, kN)
 
     dtau = 2.0 * pi / (tauN - 1)
     tau=createArray(0.0, 2.0*pi - dtau, tauN)
@@ -96,43 +90,17 @@ contains
     ! Perform numerical integration
     do i=1, xiN, 1
         do j=1, zetaN, 1
-            do k=1, xipN, 1
-                do l=1, zetapN, 1
-                    int_dxip_dzetap(l) = &
-                        funA(xi(i),xip(k),zeta(j),zetap(l)) * &
-                        funB(xip(k),zetap(l),xi0)
+            do l=1, tauN, 1
+                do m=1, kN, 1
+                    int_fun_k(m) = fun(xi(i), zeta(j), tau(l), k(m), xi0)
                 enddo
-
-                mask_int_dxip_dzetap = ( &
-                    int_dxip_dzetap==int_dxip_dzetap .and. &
-                    abs(int_dxip_dzetap)<huge(real(int_dxip_dzetap(1))) &
-                )
-
-                int_dxip(k)=trapz( &
-                    cmplx(pack(zetap,mask_int_dxip_dzetap)), &
-                    pack(int_dxip_dzetap,mask_int_dxip_dzetap) &
-                    )
-
+                psi(i,j,l) = trapz(cmplx(k), int_fun_k)
             enddo
-
-        mask_int_dxip = ( &
-            int_dxip==int_dxip .and. abs(int_dxip)<huge(real(int_dxip(1))) &
-        )
-
-        psi_n_tau(i,j)=trapz( &
-            cmplx(pack(xip,mask_int_dxip)), &
-            pack(int_dxip,mask_int_dxip) &
-        )
         enddo
     enddo
 
-    ! Add time dependence
-    do k=1, tauN, 1
-        psi(:,:,k) = psi_n_tau * sin(tau(k))
-    enddo
-
     ! Scale
-    psi = -(beta * xi0 * Atilde / (4*pi)) * psi
+    psi = -beta * Atilde * psi
 
     ! Calculate psi partials using centred finite differencing, and
     ! forward/backward differencing at endpoints.
@@ -169,24 +137,15 @@ contains
         )
     enddo
 
-end subroutine solveCaseOne
+end subroutine solveCaseTwo
 
 ! Term in integrand of psi
-function funA(xi,xip,zeta,zetap) result(f)
+function fun(xi,zeta,tau,k,xi0) result(f)
 
-    real, intent(in) :: xi, xip, zeta, zetap
+    real, intent(in) :: xi, zeta, tau, k, xi0
     real :: f
-    f = log(((xi-xip)**2+(zeta-zetap)**2)/((xi-xip)**2+(zeta+zetap)**2))
+    f = cos(k*xi)*exp(-xi0*k)*(sin(k*zeta+tau)-exp(-zeta)*sin(tau))/(1+k**2)
 
-end function funA
+end function fun
 
-! Term in integrand for psi, psiXi and psiZeta
-function funB(xip,zetap,xi0) result(f)
-
-    real, intent(in) :: xip, zetap, xi0
-    real :: f
-    f=exp(-zetap)/(xip**2+xi0**2)
-
-end function funB
-
-end program rotunnoCaseOne
+end program rotunnoCaseTwo
