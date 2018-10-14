@@ -16,5 +16,5 @@ tau = data['tau'].values
 
 # Calculate dimensional variables
 
-plotVelocity(u,w,xi,zeta,tau)
-plotPsi(psi,xi,zeta,tau)
+animateVelocity(u,w,xi,zeta,tau)
+animatePsi(psi,xi,zeta,tau)

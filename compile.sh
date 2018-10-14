@@ -1,5 +1,5 @@
 #!/bin/bash
-gfortran -g -ffpe-trap=zero,invalid,overflow,underflow \
+gfortran -g -ffpe-trap=invalid,overflow,underflow \
  -fcheck=all -Wall -fdefault-integer-8 -fdefault-real-8 \
 -I/usr/local/include \
 ../fortran_libraries/math.f90  \

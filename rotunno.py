@@ -10,7 +10,7 @@ def plotPsi(psi,xi,zeta,tau,t=0):
     # Plot
     plt.rc('text', usetex=False)
 
-    plt.ion()
+    plt.ioff()
 
     # Initialise fonts
     rcParams['font.family'] = 'serif'
@@ -38,6 +38,13 @@ def plotPsi(psi,xi,zeta,tau,t=0):
 #    plt.colorbar(contourPlot, ticks=np.arange(psiMin,psiMax+1,1))
     plt.colorbar(contourPlot)
 
+    dt=str(datetime.datetime.now())[0:-7]
+    dt=dt.replace(" ", "_")
+    dt=dt.replace(":", "_")
+    dt=dt.replace("-", "")
+    outFile='./figures/psi_' + dt + '.png'
+
+    fig.savefig(outFile, dpi=80, writer='imagemagick')
 
     return fig, ax, contourPlot
 
@@ -88,6 +95,14 @@ def plotVelocity(u,w,xi,zeta,tau,t=0):
     plt.ylabel('Height [-]')
 #    plt.colorbar(contourPlot, ticks=np.arange(speedMin,speedMax+4,4))
     plt.colorbar(contourPlot)
+
+    dt=str(datetime.datetime.now())[0:-7]
+    dt=dt.replace(" ", "_")
+    dt=dt.replace(":", "_")
+    dt=dt.replace("-", "")
+    outFile='./figures/velocity_' + dt + '.png'
+
+    plt.savefig(outFile, dpi=80, writer='imagemagick')
 
     return fig, ax, contourPlot
 

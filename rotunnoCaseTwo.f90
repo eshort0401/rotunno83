@@ -7,8 +7,8 @@ program rotunnoCaseTwo
     integer(kind=4) :: ncid
 
     ! Third dimension (time) size should be a multiple of 4.
-    complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
-    real :: xi(81), zeta(41), tau(32), k(2000)
+    complex :: psi(161,81,32), u(161,81,32), v(161,81,32), w(161,81,32)
+    real :: xi(161), zeta(81), tau(32), k(2001)
 
     !$OMP PARALLEL
 
@@ -143,8 +143,11 @@ end subroutine solveCaseTwo
 function fun(xi,zeta,tau,k,xi0) result(f)
 
     real, intent(in) :: xi, zeta, tau, k, xi0
-    real :: f
-    f = cos(k*xi)*exp(-xi0*k)*(sin(k*zeta+tau)-exp(-zeta)*sin(tau))/(1+k**2)
+    complex :: f
+    ! Note adding cmplx conversion didn't solve gfortran bug!
+    f = cos(cmplx(k) * cmplx(xi)) * exp(-cmplx(xi0) * cmplx(k)) * &
+        (sin(cmplx(k) * cmplx(zeta)+cmplx(tau)) - &
+        exp(-cmplx(zeta))*sin(cmplx(tau)))/(1+cmplx(k**2))
 
 end function fun
 

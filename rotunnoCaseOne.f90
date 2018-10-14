@@ -7,16 +7,16 @@ program rotunnoCaseOne
     integer(kind=4) :: ncid
 
     ! Third dimension (time) size should be a multiple of 4.
-    complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
-    real :: xi(81), zeta(41), tau(32)
+    complex :: psi(161,81,32), u(161,81,32), v(161,81,32), w(161,81,32)
+    real :: xi(161), zeta(81), tau(32)
 
     !$OMP PARALLEL
 
     call solveCaseOne(&
         -2.0, 2.0, size(xi), &! xiMin, xiMax, xiN
         0.0, 4.0, size(zeta), &! zeta
-        -6.0, 6.0, 481, &! xip
-        0.0, 6.0, 241, &! zetap
+        -6.0, 6.0, 961, &! xip
+        0.0, 6.0, 481, &! zetap
         size(tau), 7.27*10.0**(-3), 10.0**3, 0.2, 80.0, &! tauN, beta, Atilde, xi0
         psi, u, v, w, xi, zeta, tau &
     )
@@ -175,8 +175,11 @@ end subroutine solveCaseOne
 function funA(xi,xip,zeta,zetap) result(f)
 
     real, intent(in) :: xi, xip, zeta, zetap
-    real :: f
-    f = log(((xi-xip)**2+(zeta-zetap)**2)/((xi-xip)**2+(zeta+zetap)**2))
+    complex :: f
+    f = log(((cmplx(xi) - cmplx(xip)) ** 2 + &
+        (cmplx(zeta) - cmplx(zetap)) ** 2) / &
+        (( cmplx(xi) - cmplx(xip)) ** 2 + &
+        (cmplx(zeta) + cmplx(zetap)) ** 2))
 
 end function funA
 
@@ -184,8 +187,8 @@ end function funA
 function funB(xip,zetap,xi0) result(f)
 
     real, intent(in) :: xip, zetap, xi0
-    real :: f
-    f=exp(-zetap)/(xip**2+xi0**2)
+    complex :: f
+    f=exp( -cmplx(zetap)) / (cmplx(xip) ** 2 + cmplx(xi0) ** 2)
 
 end function funB
 
