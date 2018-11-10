@@ -1,0 +1,131 @@
+\documentclass[12pt]{article}
+\usepackage{hyperref}
+\bibliographystyle{agsm}
+\usepackage{har2nat}
+\usepackage{amsmath,amssymb,amsthm,amscd,verbatim,graphicx,color}
+\hypersetup{colorlinks=true, urlcolor=blue, citecolor=black, linkcolor=black}
+\usepackage[x11names, rgb]{xcolor}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper, margin=1.5cm]{geometry}
+\usepackage[font={small, stretch=1.3}, labelfont=bf]{caption}
+\setlength{\parskip}{0em}
+\renewcommand{\floatpagefraction}{.7}
+\linespread{1.3}
+
+\DeclareMathOperator{\sgn}{sgn}
+
+\title{Notes concerning ``On the Linear Theory of the Land and Sea Breeze"  \citep{Rotunno83}}
+\author{Ewan Short}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Paper Misprints}
+\begin{enumerate}
+\item
+Equation (37) should be 
+\begin{equation*}
+ -\beta \textrm{Re}\left\{ \mathcal{F}^{-1}\left[ \frac{1}{k}e^{-i\sgn(k) k \zeta} \int_0^\zeta \mathcal{F}\left(\frac{\partial \tilde{Q}}{\partial \xi}\right) \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty \mathcal{F}\left(\frac{\partial \tilde{Q}}{\partial \xi}\right) e^{-i\sgn(k)k\zeta'} d\zeta' \right] \right\}.
+\end{equation*}
+\item
+$\tilde{Q}$ should have time dependance $e^{-i\left(\tau-\frac{\pi}{2}\right)}=ie^{-i\tau}$ not simply $\sin\tau$. 
+\item
+The expression $\tilde{b} = b h^{-1} \omega^{-3}$ in equation (13) should actually be $\tilde{b} = b h^{-1} \omega^{-2}$ to make the units come out right - assuming $b$ has units m s$^{-1}$. 
+\end{enumerate}
+
+\section{Tropical Case}
+We are attempting to derive the equation
+\begin{equation}
+\tilde{\psi} (\xi,\zeta,\tau) = -\beta \tilde{A} \int_0^\infty \frac{\cos k\xi e^{-\xi_0 k }}{1+k^2} \left(\sin(k\zeta + \tau) - e^{-\zeta}\sin\tau \right) dk. \label{Eq:target}
+\end{equation}
+Note
+\begin{align}
+&\phantom{\Rightarrow} \tilde{Q} = \beta \tilde{A} \left(\frac{\pi}{2} +\tan^{-1} \frac{\xi}{\xi_0} \right)e^{-\zeta} i e^{-i\tau} \\
+&\Rightarrow \frac{\partial \tilde{Q}}{\partial \xi} = \frac{1}{\xi^2 + \xi_0^2} \beta \tilde{A} \xi_0 e^{-\zeta} i e^{-i\tau} \\
+&\Rightarrow \mathcal{F}\left(\frac{\partial \tilde{Q}}{\partial \xi}\right) = \mathcal{F}\left[ \frac{1}{\xi^2 + \xi_0^2} \right] \tilde{A} \xi_0 e^{-\zeta} i e^{-i\tau} \\
+&\Rightarrow \mathcal{F}\left(\frac{\partial \tilde{Q}}{\partial \xi}\right) =  \frac{\pi}{\xi_0}e^{-\xi_0 |k|} \tilde{A} \xi_0 e^{-\zeta} e^{-i\tau} = \pi e^{-\xi_0 |k|} \tilde{A} e^{-\zeta} i e^{-i\tau}
+\end{align}
+using the non-unitary, angular frequency form of the Fourier transform. This Fourier transform can be derived by considering the Fourier transform of $\frac{\pi}{\xi_0}e^{-\xi_0|\xi|}$, applying the inverse Fourier transform, and changing signs.
+
+Now, starting from the corrected form of equation 37 we have,
+\begin{align}
+&\phantom{=} -\beta \mathcal{F}^{-1}\left[ \frac{1}{k}e^{-i\sgn(k) k \zeta} \int_0^\zeta \mathcal{F}\left(\frac{\partial \tilde{Q}}{\partial \xi}\right) \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty \mathcal{F}\left(\frac{\partial \tilde{Q}}{\partial \xi}\right) e^{-i\sgn(k)k\zeta'} d\zeta' \right]
+\label{Eq:start} \\
+&=-\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{-\infty}^{0} e^{ik\xi} \left[\frac{1}{k}e^{i k \zeta} \int_0^\zeta  e^{\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{\xi_0 k} e^{-\zeta} e^{ik\zeta'} d\zeta' \right] dk \\
+&\phantom{=} -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{-\xi_0 k} e^{-\zeta} e^{-i k\zeta'} d\zeta' \right] dk \\
+&= -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{-ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{-\xi_0 k} e^{-\zeta} e^{-ik\zeta'} d\zeta' \right] dk \\
+&\phantom{=} -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\xi_0 k} e^{-\zeta} e^{-i k\zeta'} d\zeta' \right] dk \\
+&=-\beta i e^{-i\tau} \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \left[\frac{1}{k}e^{-i k \zeta'} \int_0^\zeta e^{-\zeta'}  \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\zeta'} e^{-ik\zeta'} d\zeta' \right] dk \label{Eq:rotNotes} \\ 
+&=-\beta \int_{0}^{\infty} \cos\left(k\xi \right) \left[e^{-i k \zeta'} \int_0^\zeta \left(\frac{\partial \tilde{Q}}{\partial \xi}\right) \sin k\zeta' d\zeta' + \sin k \zeta \int_\zeta^\infty \left(\frac{\partial \tilde{Q}}{\partial \xi}\right) e^{-ik\zeta'} d\zeta' \right] \frac{dk}{k}. \label{Eq:rotNotes2}
+\end{align}
+Note (\ref{Eq:rotNotes2}) matches what's in Rotunno's notes. From (\ref{Eq:rotNotes2}) the derivation is easy.
+
+My attempt at deriving equation (\ref{Eq:target}) - equation (38) in Rotunno's paper - is very messy. It didn't quite work originally as I was using the incorrect version of (37). Now having the correct version, let's see if it works. We have from (\ref{Eq:start}),
+\begin{align}
+&\phantom{=} -\beta \mathcal{F}^{-1}\left[ \frac{1}{k} e^{-i\sgn(k) k \zeta} \int_0^\zeta \left(\pi e^{-\xi_0 |k|} \tilde{A} e^{-\zeta} i e^{-i\tau} \right) \sin k\zeta' d\zeta' \right. \\
+& \phantom{=} \left. + \frac{1}{k} \sin k \zeta \int_\zeta^\infty \left(\pi e^{-\xi_0 |k|} \tilde{A} e^{-\zeta} i e^{-i\tau} \right) e^{-i\sgn(k)k\zeta'} d\zeta' \right] \\
+& = -\beta \tilde{A} \pi i e^{-i\tau} \mathcal{F}^{-1} \left[ \frac{1}{k} e^{-i\sgn(k) k \zeta} e^{-\xi_0 |k|} \int_0^\zeta e^{-\zeta'} \sin k\zeta' d\zeta' \right. \\
+& \phantom{=} \left.  + \frac{1}{k} \sin k \zeta e^{-\xi_0 |k|} \int_\zeta^\infty e^{-\zeta'} e^{-i\sgn(k)k\zeta'} d\zeta' \right]  \\
+& =-\beta \tilde{A} \pi i e^{-i\tau} \mathcal{F}^{-1} \left\{ \frac{1}{k} e^{-i\sgn(k) k \zeta} e^{-\xi_0 |k|}   \left[ \frac{-e^{-\zeta'}}{k^2+1}\left(k\cos k\zeta' + \sin k\zeta' \right)\right]_0^\zeta \right\} \label{Eq:int1} \\
+& \phantom{=} -\beta\tilde{A} \pi i e^{-i\tau} \mathcal{F}^{-1}\left\{\frac{1}{k} \sin k \zeta e^{-\xi_0 |k|} \left[ \frac{1}{-i\sgn(k)k-1}e^{\left(-i\sgn(k)k-1\right)\zeta'} \right]_\zeta^\infty \right\}, \\
+& =-\beta \tilde{A} \pi i e^{-i\tau} \mathcal{F}^{-1} \left\{ \frac{1}{k} e^{-i\sgn(k) k \zeta} e^{-\xi_0 |k|}   \left( \frac{-e^{-\zeta}}{k^2+1}\left(k\cos k\zeta + \sin k\zeta \right) + \frac{k}{k^2+1} \right) \right\} \label{Eq:term1} \\
+& \phantom{=} -\beta \tilde{A} \pi i e^{-i\tau} \mathcal{F}^{-1}\left\{ \frac{1}{k} \sin k \zeta e^{-\xi_0 |k|} \left[ \frac{1}{-i\sgn(k)k-1}e^{\left(-i\sgn(k)k-1\right)\zeta'} \right]_\zeta^\infty \right\},
+\end{align}
+where the first integral (\ref{Eq:int1}) can be calculated by performing integration by parts. Consider the first term of the sum, i.e. (\ref{Eq:term1}). We have
+\begin{align}
+& \phantom{=} -\beta \tilde{A} \pi i e^{-i\tau} \mathcal{F}^{-1} \left\{ \frac{1}{k} e^{-i\sgn(k) k \zeta} e^{-\xi_0 |k|}   \left( \frac{-e^{-\zeta}}{k^2+1}\left(k\cos k\zeta + \sin k\zeta \right) + \frac{k}{k^2+1} \right) \right\} \\
+&=-\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_{-\infty}^\infty \frac{1}{k} e^{i k \xi} e^{-i\sgn(k) k \zeta} e^{-\xi_0 |k|}   \left( \frac{-e^{-\zeta}}{k^2+1}\left(k\cos k\zeta + \sin k\zeta \right) + \frac{k}{k^2+1} \right) dk \\
+&=-\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_{-\infty}^0 \frac{1}{k} e^{i k \xi} e^{i k \zeta} e^{\xi_0 k}   \left( \frac{-e^{-\zeta}}{k^2+1}\left(k\cos k\zeta + \sin k\zeta \right) + \frac{k}{k^2+1} \right) dk \\
+&\phantom{=}  -\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_0^\infty \frac{1}{k} e^{i k \xi} e^{-i k \zeta} e^{-\xi_0 k}   \left( \frac{-e^{-\zeta}}{k^2+1}\left(k\cos k\zeta + \sin k\zeta \right) + \frac{k}{k^2+1} \right) dk \\
+&=-\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_{0}^\infty \frac{1}{-k} e^{-ik \xi} e^{-ik \zeta} e^{-\xi_0k}   \left( \frac{-e^{-\zeta}}{k^2+1}\left(-k\cos k\zeta - \sin k\zeta \right) - \frac{k}{k^2+1} \right) dk \\
+&\phantom{=}  -\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_0^\infty \frac{1}{k} e^{i k \xi} e^{-i k \zeta} e^{-\xi_0 k}   \left( \frac{-e^{-\zeta}}{k^2+1}\left(k\cos k\zeta + \sin k\zeta \right) + \frac{k}{k^2+1} \right) dk \\
+&= -\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_0^\infty \frac{1}{k} \left(e^{i k \xi} + e^{-ik\xi} \right) e^{-i k \zeta} e^{-\xi_0 k}   \left( \frac{-e^{-\zeta}}{k^2+1}\left(k\cos k\zeta + \sin k\zeta \right) + \frac{k}{k^2+1} \right) dk  \\
+&= -\beta \tilde{A} \left(i\cos\tau+\sin\tau\right) \int_0^\infty \frac{1}{k} \cos k\xi e^{-i k \zeta} e^{-\xi_0 k}   \frac{1}{k^2+1}\left(-e^{-\zeta}\left(k\cos k\zeta + \sin k\zeta \right) + k \right) dk \\
+&= -\beta \tilde{A} \left(i\cos\tau+\sin\tau\right) \int_0^\infty \frac{1}{k} \cos k\xi \left(\cos k\zeta - i\sin k\zeta \right) \\
+&\phantom{=} \times e^{-\xi_0 k} \frac{1}{k^2+1}\left(-e^{-\zeta}\left(k\cos k\zeta + \sin k\zeta \right) + k \right) dk \\
+&= -\beta \tilde{A} \int_0^\infty \frac{1}{k} \sin k\xi \left(i\cos\tau+\sin\tau\right)\left(\cos k\zeta - i\sin k\zeta \right) \\
+&\phantom{=} \times e^{-\xi_0 k}   \frac{1}{k^2+1}\left(-e^{-\zeta}\left(k\cos k\zeta + \sin k\zeta \right) + k \right) dk \\
+&= -\beta \tilde{A} \int_0^\infty \frac{1}{k} \sin k\xi \left(i\cos\tau\cos k\zeta +  \cos\tau\sin k\zeta + \sin\tau\cos k\zeta - i\sin\tau\sin k \zeta\right) \\
+&\phantom{=} \times e^{-\xi_0 k}   \frac{1}{k^2+1}\left(-e^{-\zeta}\left(k\cos k\zeta + \sin k\zeta \right) + k \right) dk
+\end{align}
+The real part of this is then
+\begin{align}
+&\phantom{=} -\beta \tilde{A}  \int_0^\infty \frac{1}{k} \sin k\xi \left(\cos\tau \cos k\zeta  + \sin\tau \sin k\zeta\right) e^{-\xi_0 k}   \frac{1}{k^2+1}\left(-e^{-\zeta}\left(k\cos k\zeta + \sin k\zeta \right) + k \right) dk \\
+&= -\beta \tilde{A}  \int_0^\infty \frac{1}{k} \sin k\xi \sin\left(\tau + k\zeta\right) e^{-\xi_0 k}   \frac{1}{k^2+1}\left(-e^{-\zeta}\left(k\cos k\zeta + \sin k\zeta \right) + k \right) dk \\
+& = -\beta \tilde{A}  \int_0^\infty \frac{1}{k} \sin k\xi \frac{1}{k^2+1} e^{-\xi_0 k} \\
+&\phantom{=} \times \left(-\sin\left(\tau+k\zeta\right)e^{-\zeta}k\cos k\zeta - \sin\left(\tau+k\zeta\right) e^{-\zeta} \sin k\zeta + k\sin\left(\tau+k\zeta\right) \right) dk. \label{Eq:realTermOne} 
+\end{align}
+Consider now the second term. We have
+\begin{align}
+& \phantom{=} -\beta\tilde{A} \pi i e^{-i\tau} \mathcal{F}^{-1}\left\{\frac{1}{k} \sin k \zeta e^{-\xi_0 |k|} \left[ \frac{1}{-i\sgn(k)k-1}e^{\left(-i\sgn(k)k-1\right)\zeta'} \right]_\zeta^\infty \right\} \\
+&= -\beta\tilde{A} i e^{-i\tau} \frac{1}{2} \int_{-\infty}^{0} \frac{1}{k} e^{i k \xi} \left(\sin k \zeta e^{\xi_0 k} \left[ \frac{1}{i k-1}e^{\left(ik-1\right)\zeta'} \right]_\zeta^\infty \right) dk \\
+&\phantom{=} -\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_{0}^{\infty} \frac{1}{k} e^{i k \xi} \left(\sin k \zeta e^{-\xi_0 k} \left[ \frac{1}{-ik-1}e^{\left(-ik-1\right)\zeta'} \right]_\zeta^\infty \right) dk \\
+&= -\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_{-\infty}^{0} \frac{1}{k} e^{i k \xi} \left(\sin k \zeta e^{\xi_0 k} \frac{1}{1-i k}e^{\left(ik-1\right)\zeta} \right) dk \\
+&\phantom{=} -\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_{0}^{\infty} \frac{1}{k} e^{i k \xi} \left(\sin k \zeta e^{-\xi_0 k} \frac{1}{1+ik}e^{\left(-ik-1\right)\zeta} \right) dk \\
+&= -\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_{0}^{\infty} \frac{1}{-k} e^{-i k \xi} \left(-\sin k \zeta e^{-\xi_0 k} \frac{1}{1+i k}e^{\left(-ik-1\right)\zeta} \right) dk \\
+&\phantom{=} -\beta \tilde{A} i e^{-i\tau} \frac{1}{2} \int_{0}^{\infty} \frac{1}{k} e^{i k \xi} \left(\sin k \zeta e^{-\xi_0 k} \frac{1}{1+ik}e^{\left(-ik-1\right)\zeta} \right) dk \\
+&= -\beta \tilde{A}i e^{-i\tau} \int_{0}^{\infty} \frac{1}{k} \cos k\xi e^{-\xi_0 k} e^{-ik\zeta} \left(\sin k \zeta \frac{1-ik}{1+k^2}e^{-\zeta} \right) dk \\
+&= -\beta \tilde{A}i e^{-i\tau} \int_{0}^{\infty} \frac{1}{k} \cos k\xi e^{-\xi_0 k} \left(\cos k\zeta - i\sin k \zeta\right) \left(1-ik\right)\left(\sin k \zeta \frac{1}{1+k^2}e^{-\zeta} \right) dk \\
+&= -\beta \tilde{A} \int_{0}^{\infty} \frac{1}{k} \cos k\xi e^{-\xi_0 k}\left(\sin k \zeta \frac{1}{1+k^2}e^{-\zeta} \right) \\
+&\phantom{=}\times \left(i\cos\tau + \sin\tau \right)\left(\cos k\zeta -ik\cos k\zeta - i\sin k\zeta - k\sin k\zeta \right) dk.
+\end{align}
+The real part of this is then
+\begin{align}
+&\phantom{=} -\beta \tilde{A} \int_{0}^{\infty} \frac{1}{k} \sin k\xi e^{-\xi_0 k}\left(\sin k \zeta \frac{1}{1+k^2}e^{-\zeta} \right) \\
+&\phantom{=}\times \left( k\cos\tau\cos k\zeta + \cos\tau\sin k\zeta + \sin\tau\cos k\zeta -k\sin\tau\sin k\zeta \right) dk \\
+&= -\beta \tilde{A} \int_{0}^{\infty} \frac{1}{k} \sin k\xi e^{-\xi_0 k}\left(\sin k \zeta \frac{1}{1+k^2}e^{-\zeta} \right) \\
+&\phantom{=}\times \left(k\cos\left(\tau + k\zeta\right) + \sin\left(\tau+k\zeta \right) \right) dk \\
+&= -\beta \tilde{A} \int_{0}^{\infty} \frac{1}{k} \sin k\xi e^{-\xi_0 k}\frac{1}{1+k^2} \\
+&\phantom{=} \times\left(\sin k \zeta e^{-\zeta} k \cos\left(\tau+k\zeta \right) + \sin k \zeta e^{-\zeta}\sin\left(\tau+k\zeta \right) \right) dk \label{Eq:realTermTwo}
+\end{align}
+Summing (\ref{Eq:realTermOne}) and (\ref{Eq:realTermTwo}) gives
+\begin{align}
+\tilde{\psi} (\xi,\zeta,\tau) = -\beta \tilde{A} \int_0^\infty \frac{\cos k\xi e^{-\xi_0 k }}{1+k^2} \left(\sin(k\zeta + \tau) - e^{-\zeta}\sin\tau \right) dk
+\end{align}
+as required!
+
+\bibliography{../../Ewan_Short_Masters/Bibliography/ewansbibli.bib}
+
+\end{document}

@@ -7,8 +7,9 @@ program rotunnoCaseTwo
     integer(kind=4) :: ncid
 
     ! Third dimension (time) size should be a multiple of 4.
-    complex :: psi(161,81,32), u(161,81,32), v(161,81,32), w(161,81,32)
-    real :: xi(161), zeta(81), tau(32), k(2001)
+    complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
+    complex :: b(81,41,32) ! Non dimensional bouyancy
+    real :: xi(81), zeta(41), tau(32), k(2001)
 
     !$OMP PARALLEL
 
@@ -17,7 +18,7 @@ program rotunnoCaseTwo
         0.0, 4.0, size(zeta), &! zetaMin, zetaMax, zetaN
         0.0, 20.0, size(k), &! k
         size(tau), 7.27*10.0**(-3), 10.0**3, 0.2, 5.0, &! tauN, beta, Atilde, xi0, latitude
-        psi, u, v, w, xi, zeta, tau &
+        psi, u, v, w, b, xi, zeta, tau &! Outputs
     )
 
     !$OMP END PARALLEL
@@ -54,7 +55,7 @@ contains
         zetaMin, zetaMax, zetaN, &! zeta
         kMin, kMax, kN, &! k (wavenumber)
         tauN, beta, Atilde, xi0, latitude, &! other parameters
-        psi, u, v, w, xi, zeta, tau &! outputs
+        psi, u, v, w, b, xi, zeta, tau &! outputs
      )
 
     ! Inputs
@@ -71,6 +72,8 @@ contains
 
     ! Constants
     real, parameter :: pi  = 4 * atan(1.0_8)
+    real, parameter :: N = 0.005
+    real, parameter :: omega = 7.2921159 * (10 ** (−5))
 
     ! Outputs
     complex, intent(out) :: psi(xiN,zetaN,tauN)
@@ -108,20 +111,20 @@ contains
     dzeta = (zetaMax - zetaMin) / (zetaN - 1)
 
     ! w = -dpsi_dxi
-    w(2:xiN-1,:,:) = (psi(3:,:,:) - psi(1:xiN-2,:,:)) / (2*dxi)
+    w(2:xiN-1,:,:) = (psi(3:,:,:) - psi(1:xiN-2,:,:)) / (2 * dxi)
     w(1,:,:) = (psi(2,:,:) - psi(1,:,:)) / dxi
     w(xiN,:,:) = (psi(xiN,:,:) - psi(xiN-1,:,:)) / dxi
     w = -w
 
     ! u = dpsi_dzeta
-    u(:,2:zetaN-1,:) = (psi(:,3:,:) - psi(:,1:zetaN-2,:)) / (2*dzeta)
+    u(:,2:zetaN-1,:) = (psi(:,3:,:) - psi(:,1:zetaN-2,:)) / (2 * dzeta)
     u(:,1,:) = (psi(:,2,:) - psi(:,1,:)) / dzeta
     u(:,zetaN,:) = (psi(:,zetaN,:) - psi(:,zetaN-1,:)) / dzeta
 
     ! Calculate v from dv_dtau * omega + f * u = 0
     ! v is a perturbation, so it should integrate to zero.
     ! This can be achieved by assuming v=0 when abs(u) is maximised.
-    ! abs(u) is maximised minimised at tau = pi / 2.
+    ! abs(u) is maximised/minimised at tau = pi / 2.
 
     v0_ind = floor(tauN / 4.0) + 1
     v(:,:,v0_ind) = 0
@@ -137,6 +140,16 @@ contains
         )
     enddo
 
+    ! Calculate b(tilde) by numerically integrating non dimensional form of
+    ! equation (4) in Rotunno (1983).
+    ! Note error in Rotunno (1983): b = bTilde * h * omega ^ 2, not omega ^ 3
+    ! This gives dbTilde_dtau = Qtilde - (N/omega) ^ 2 - wTilde
+    ! (N/omega)^2 is like a Berger number with H = L.
+
+    b(:,:,1) = - ((N/omega) ** 2)
+
+
+
 end subroutine solveCaseTwo
 
 ! Term in integrand of psi
@@ -150,5 +163,13 @@ function fun(xi,zeta,tau,k,xi0) result(f)
         exp(-cmplx(zeta))*sin(cmplx(tau)))/(1+cmplx(k**2))
 
 end function fun
+
+function H(xi, zeta, xi0, Atilde) result(f)
+
+    real, intent(in) :: xi(:,:), zeta(:,:), xi0, Atilde
+    complex :: f
+    f = Atilde * ((pi / 2) + atan(cmplx(xi) / cmplx(xi0))) * exp(-cmplx(zeta))
+
+end function H
 
 end program rotunnoCaseTwo
