@@ -245,3 +245,9 @@ def animateVelocity(u,w,xi,zeta,tau):
     plt.close("all")
 
     return
+    
+def calculatePotentialTemperature(Q,N,w,t):
+    
+    
+    
+    return

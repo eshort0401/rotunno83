@@ -14,7 +14,7 @@
 
 \DeclareMathOperator{\sgn}{sgn}
 
-\title{Notes concerning ``On the Linear Theory of the Land and Sea Breeze"  \citep{Rotunno83}}
+\title{Notes concerning ``On the Linear Theory of the Land and Sea Breeze"  \citep{rotunno83}}
 \author{Ewan Short}
 \date{\today}
 
@@ -125,6 +125,23 @@ Summing (\ref{Eq:realTermOne}) and (\ref{Eq:realTermTwo}) gives
 \tilde{\psi} (\xi,\zeta,\tau) = -\beta \tilde{A} \int_0^\infty \frac{\cos k\xi e^{-\xi_0 k }}{1+k^2} \left(\sin(k\zeta + \tau) - e^{-\zeta}\sin\tau \right) dk
 \end{align}
 as required!
+
+\section{Calculating Potential Temperature}
+From equation (4) \citet{rotunno83} we have 
+\begin{align*}
+\frac{\partial b}{\partial t} + N^2 w = Q. 
+\end{align*}
+The non-dimensional form of this is
+\begin{align*}
+& \phantom{=} \frac{\partial \tilde{b}}{\partial \tau}h \omega^3 + N^2 \tilde{w}h\omega = \tilde{Q}h\omega^3 \\
+& = \frac{\partial \tilde{b}}{\partial \tau} + \left(\frac{N}{\omega}\right)^2 \tilde{w} = \tilde{Q}. 
+\end{align*}
+Note that $\left(\frac{N}{\omega}\right)^2$ is essentially the Berger number with $H=L$. Thus can solve for $\tilde{b}$ using
+\begin{align*}
+&\phantom{=} \frac{\tilde{b}_{k+1}-\tilde{b}_{k}}{\Delta \tau} = \tilde{Q}_k - \left(\frac{N}{\omega}\right)^2 \tilde{w}_k \\
+&= \tilde{b}_{k+1}-\tilde{b}_{k} = \Delta \tau\left(\tilde{Q}_k - \left(\frac{N}{\omega}\right)^2 \tilde{w}_k \right).
+\end{align*}
+This produces a linear system of $\tau_N$ linearly independent equations in $\tau_N$ unknowns. However, in this form the system is singular - so substitute the equation for $\tilde{b}$ for $\tilde{b}=0$. This produces weird results, with values much too great to be realistic. Thus initial condition flawed? Do we really have an initial condition for the bouyancy?   
 
 \bibliography{../../Ewan_Short_Masters/Bibliography/ewansbibli.bib}
 

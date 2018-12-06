@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.6.16)  9 NOV 2018 16:59
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.6.16)  6 DEC 2018 22:44
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -450,26 +450,26 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
 {/usr/local/texlive/2018/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]
-
-(./rotunno83_notes.bbl)
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 131.
  [4]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 131.
+(./rotunno83_notes.bbl)
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 148.
+ [5]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 148.
  (./rotunno83_notes.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 131.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 131.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 148.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 148.
 Package rerunfilecheck Info: File `rotunno83_notes.out' has not changed.
-(rerunfilecheck)             Checksum: FC15EB92F71CB0F7F2029FEA014B5472;98.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 131.
+(rerunfilecheck)             Checksum: 2D274961720AC783174A3F16DA3D2397;166.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 148.
  ) 
 Here is how much of TeX's memory you used:
- 8714 strings out of 492646
- 128681 string characters out of 6129563
+ 8717 strings out of 492646
+ 128707 string characters out of 6129563
  272919 words of memory out of 5000000
- 12438 multiletter control sequences out of 15000+600000
+ 12439 multiletter control sequences out of 15000+600000
  12443 words of font info for 48 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 36i,12n,38p,372b,331s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,12n,38p,389b,333s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
 ></usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb>
 </usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb><
@@ -483,10 +483,10 @@ live/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texl
 ive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texliv
 e/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/
 2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb>
-Output written on rotunno83_notes.pdf (4 pages, 144448 bytes).
+Output written on rotunno83_notes.pdf (5 pages, 150313 bytes).
 PDF statistics:
- 172 PDF objects out of 1000 (max. 8388607)
- 151 compressed objects within 2 object streams
- 68 named destinations out of 1000 (max. 500000)
- 17 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 182 PDF objects out of 1000 (max. 8388607)
+ 160 compressed objects within 2 object streams
+ 70 named destinations out of 1000 (max. 500000)
+ 25 words of extra memory for PDF output out of 10000 (max. 10000000)
 

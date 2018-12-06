@@ -4,12 +4,19 @@ program rotunnoCaseTwo
     use math
     implicit none
 
-    integer(kind=4) :: ncid
+    integer(kind=4) :: ncid, status
 
     ! Third dimension (time) size should be a multiple of 4.
     complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
     complex :: b(81,41,32) ! Non dimensional bouyancy
     real :: xi(81), zeta(41), tau(32), k(2001)
+    real :: beta, Atilde, xi0, latitude
+
+    ! Specify model parameters
+    beta = 7.27*10.0**(-3)
+    Atilde = 10.0**3
+    xi0 = 0.2
+    latitude = 5.0
 
     !$OMP PARALLEL
 
@@ -17,7 +24,7 @@ program rotunnoCaseTwo
         -2.0, 2.0, size(xi), &! xiMin, xiMax, xiN
         0.0, 4.0, size(zeta), &! zetaMin, zetaMax, zetaN
         0.0, 20.0, size(k), &! k
-        size(tau), 7.27*10.0**(-3), 10.0**3, 0.2, 5.0, &! tauN, beta, Atilde, xi0, latitude
+        size(tau), beta, Atilde, xi0, latitude, &! tauN, beta, Atilde, xi0, lat
         psi, u, v, w, b, xi, zeta, tau &! Outputs
     )
 
@@ -49,6 +56,11 @@ program rotunnoCaseTwo
         'xi','zeta','tau' &
     )
 
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "beta", beta)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "Atilde", Atilde)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "xi0", xi0)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "lat", latitude)
+
 contains
     subroutine solveCaseTwo( &
         xiMin, xiMax, xiN, &! xi
@@ -73,13 +85,14 @@ contains
     ! Constants
     real, parameter :: pi  = 4 * atan(1.0_8)
     real, parameter :: N = 0.005
-    real, parameter :: omega = 7.2921159 * (10 ** (−5))
+    real, parameter :: omega = 7.2921159 * (10 ** (-5))
 
     ! Outputs
-    complex, intent(out) :: psi(xiN,zetaN,tauN)
-    complex, intent(out) :: u(xiN,zetaN,tauN)
-    complex, intent(out) :: v(xiN,zetaN,tauN)
-    complex, intent(out) :: w(xiN,zetaN,tauN)
+    complex, intent(out) :: psi(xiN, zetaN, tauN)
+    complex, intent(out) :: b(xiN, zetaN, tauN)
+    complex, intent(out) :: u(xiN, zetaN, tauN)
+    complex, intent(out) :: v(xiN, zetaN, tauN)
+    complex, intent(out) :: w(xiN, zetaN, tauN)
     real, intent(out) :: xi(xiN), zeta(zetaN), tau(tauN)
 
     ! Initialise arrays
@@ -146,9 +159,8 @@ contains
     ! This gives dbTilde_dtau = Qtilde - (N/omega) ^ 2 - wTilde
     ! (N/omega)^2 is like a Berger number with H = L.
 
-    b(:,:,1) = - ((N/omega) ** 2)
-
-
+    ! b(:,:,1) = - ((N/omega) ** 2)
+    ! tesT
 
 end subroutine solveCaseTwo
 
@@ -164,9 +176,9 @@ function fun(xi,zeta,tau,k,xi0) result(f)
 
 end function fun
 
-function H(xi, zeta, xi0, Atilde) result(f)
+function H(xi, zeta, xi0, Atilde, pi) result(f)
 
-    real, intent(in) :: xi(:,:), zeta(:,:), xi0, Atilde
+    real, intent(in) :: xi, zeta, xi0, Atilde, pi
     complex :: f
     f = Atilde * ((pi / 2) + atan(cmplx(xi) / cmplx(xi0))) * exp(-cmplx(zeta))
 

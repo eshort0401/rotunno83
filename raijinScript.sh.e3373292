@@ -1,0 +1,32 @@
+forrtl: warning (406): fort: (1): In call to EXPORT_NC_3D, an array temporary was created for argument #2
+
+Image              PC                Routine            Line        Source             
+rotunnoCaseTwoTes  00000000004272F0  for_emit_diagnost     Unknown  Unknown
+rotunnoCaseTwoTes  000000000040E808  Unknown               Unknown  Unknown
+rotunnoCaseTwoTes  000000000040A05E  Unknown               Unknown  Unknown
+libc-2.12.so       00007FCA8B343D20  __libc_start_main     Unknown  Unknown
+rotunnoCaseTwoTes  0000000000409F69  Unknown               Unknown  Unknown
+forrtl: warning (406): fort: (1): In call to ADD_VAR_NC_3D, an array temporary was created for argument #2
+
+Image              PC                Routine            Line        Source             
+rotunnoCaseTwoTes  00000000004272F0  for_emit_diagnost     Unknown  Unknown
+rotunnoCaseTwoTes  000000000040EAD7  Unknown               Unknown  Unknown
+rotunnoCaseTwoTes  000000000040A05E  Unknown               Unknown  Unknown
+libc-2.12.so       00007FCA8B343D20  __libc_start_main     Unknown  Unknown
+rotunnoCaseTwoTes  0000000000409F69  Unknown               Unknown  Unknown
+forrtl: warning (406): fort: (1): In call to ADD_VAR_NC_3D, an array temporary was created for argument #2
+
+Image              PC                Routine            Line        Source             
+rotunnoCaseTwoTes  00000000004272F0  for_emit_diagnost     Unknown  Unknown
+rotunnoCaseTwoTes  000000000040ED3A  Unknown               Unknown  Unknown
+rotunnoCaseTwoTes  000000000040A05E  Unknown               Unknown  Unknown
+libc-2.12.so       00007FCA8B343D20  __libc_start_main     Unknown  Unknown
+rotunnoCaseTwoTes  0000000000409F69  Unknown               Unknown  Unknown
+forrtl: warning (406): fort: (1): In call to ADD_VAR_NC_3D, an array temporary was created for argument #2
+
+Image              PC                Routine            Line        Source             
+rotunnoCaseTwoTes  00000000004272F0  for_emit_diagnost     Unknown  Unknown
+rotunnoCaseTwoTes  000000000040EF91  Unknown               Unknown  Unknown
+rotunnoCaseTwoTes  000000000040A05E  Unknown               Unknown  Unknown
+libc-2.12.so       00007FCA8B343D20  __libc_start_main     Unknown  Unknown
+rotunnoCaseTwoTes  0000000000409F69  Unknown               Unknown  Unknown

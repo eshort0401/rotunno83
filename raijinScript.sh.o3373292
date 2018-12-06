@@ -1,0 +1,21 @@
+ Successfully created netcdf file!
+ Successfully added variable to netcdf file!
+ Successfully added variable to netcdf file!
+ Successfully added variable to netcdf file!
+ Successfully added attribute to netcdf file!
+ Successfully added attribute to netcdf file!
+ Successfully added attribute to netcdf file!
+ Successfully added attribute to netcdf file!
+
+======================================================================================
+                  Resource Usage on 2018-12-06 16:49:52:
+   Job Id:             3373292.r-man2
+   Project:            w40
+   Exit Status:        0
+   Service Units:      0.99
+   NCPUs Requested:    16                     NCPUs Used: 16              
+                                           CPU Time Used: 00:01:08                                   
+   Memory Requested:   64.0GB                Memory Used: 13.44MB         
+   Walltime requested: 02:00:00            Walltime Used: 00:01:14        
+   JobFS requested:    100.0MB                JobFS used: 0B              
+======================================================================================
