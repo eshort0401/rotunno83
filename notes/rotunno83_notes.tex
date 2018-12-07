@@ -141,7 +141,7 @@ Note that $\left(\frac{N}{\omega}\right)^2$ is essentially the Berger number wit
 &\phantom{=} \frac{\tilde{b}_{k+1}-\tilde{b}_{k}}{\Delta \tau} = \tilde{Q}_k - \left(\frac{N}{\omega}\right)^2 \tilde{w}_k \\
 &= \tilde{b}_{k+1}-\tilde{b}_{k} = \Delta \tau\left(\tilde{Q}_k - \left(\frac{N}{\omega}\right)^2 \tilde{w}_k \right).
 \end{align*}
-This produces a linear system of $\tau_N$ linearly independent equations in $\tau_N$ unknowns. However, in this form the system is singular - so substitute the equation for $\tilde{b}$ for $\tilde{b}=0$. This produces weird results, with values much too great to be realistic. Thus initial condition flawed? Do we really have an initial condition for the bouyancy?   
+This produces a linear system of $\tau_N$ linearly independent equations in $\tau_N$ unknowns. However, in this form the system is singular - so substitute the equation for $\tilde{b_1}$ for $\tilde{b_1}+\tilde{b_\frac{\tau_n}{2}}=0$ to impose symmetry on the bouyancy. Note can use $\tilde{b_1}+\tilde{b_{\left\lfloor\frac{\tau_n}{2}\right\rfloor}! This works - we can solve for bouyancy even without initial conditions! From bouyancy can extract potential temperature! 
 
 \bibliography{../../Ewan_Short_Masters/Bibliography/ewansbibli.bib}
 

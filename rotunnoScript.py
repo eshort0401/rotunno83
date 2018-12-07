@@ -26,12 +26,14 @@ xi0 = data.xi0
 # Specify dimensional parameters and constants
 N = 0.005
 omega = 2*np.pi/(24*3600)
-h = 10 ** 4 / 4
+h = 10 ** 4 / 2
 theta0 = 300
 g = 9.81
-thetaBar = 300 + zeta * h * 0.006
 
-thetaBar = np.outer(thetaBar, np.ones(np.size(zeta)))
+thetaBar = np.zeros(np.shape(psi))
+
+for i in np.arange(0,np.size(tau)):
+    thetaBar[:,:,i] = np.outer(np.ones(np.size(xi)),zeta * h * 0.003)
 
 # Specify heating function array
 Q = np.zeros(np.shape(psi))
@@ -48,6 +50,7 @@ RHS = np.zeros(np.size(tau))
 dtau = tau[1]-tau[0]
 
 LHS[0, 0] = 1
+LHS[0,16] = 1
 RHS[0] = 0
 for k in np.arange(1,np.size(tau)):
     LHS[k, np.mod(k+1,32)] = 1
@@ -67,3 +70,6 @@ for i in np.arange(0,np.size(xi)):
 # Convert btilde to potential temperature perturbation
 thetaPrime = btilde * (omega ** 2) * h * theta0 / g
         
+theta = theta0 + thetaBar + thetaPrime
+
+# Redimensionalise before plotting
