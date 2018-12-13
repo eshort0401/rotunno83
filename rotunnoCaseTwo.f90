@@ -4,6 +4,9 @@ program rotunnoCaseTwo
     use math
     implicit none
 
+    ! Specify real precision
+    integer, parameter :: dp = selected_real_kind(15, 307)
+
     integer :: narg, argInd
     real :: latitude, xi0, h, delTheta, theta0, theta1, tropHeight
 
@@ -13,12 +16,19 @@ program rotunnoCaseTwo
     complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
     complex :: b(81,41,32) ! Non dimensional bouyancy
     real :: xi(81), zeta(41), tau(32), k(2001)
-    real :: beta, Atilde, N
+    real(dp) :: beta, Atilde, N, f
+
+    ! Constants
+    real, parameter :: pi  = 4 * atan(1.0_8)
+    real(dp), parameter :: omega = 7.2921159 * (10 ** (-5))
+    real(dp), parameter :: g = 9.80665
+
+    character(len=32) :: name
 
     xi0 = 0.2
-    latitude = 5.0
+    latitude = 5.0 ! Degrees
     h = 1375.0
-    delTheta = 8
+    delTheta = 8.0
     theta0 = 300.0
     theta1 = 360.0
     tropHeight = 11000.0
@@ -26,28 +36,26 @@ program rotunnoCaseTwo
     narg = command_argument_count()
 
     ! Read in command line arguments if present
-    if (narg >= 1) read_cl_real_arg(1, xi0)
-    if (narg >= 2) read_cl_real_arg(2, latitude)
-    if (narg >= 3) read_cl_real_arg(3, h)
-    if (narg >= 4) read_cl_real_arg(4, delTheta)
-    if (narg >= 5) read_cl_real_arg(5, theta0)
-    if (narg >= 6) read_cl_real_arg(6, theta1)
-    if (narg >= 7) read_cl_real_arg(7, tropHeight)
+    if (narg >= 1) call read_cl_real_arg(1, xi0)
+    if (narg >= 2) call read_cl_real_arg(2, latitude)
+    if (narg >= 3) call read_cl_real_arg(3, h)
+    if (narg >= 4) call read_cl_real_arg(4, delTheta)
+    if (narg >= 5) call read_cl_real_arg(5, theta0)
+    if (narg >= 6) call read_cl_real_arg(6, theta1)
+    if (narg >= 7) call read_cl_real_arg(7, tropHeight)
 
     if (narg >= 8) then
         print *, 'Error: rotunnoCaseTwo only accepts between 0 and 7 arguments!'
         stop
     endif
 
-    ! Constants
-    real, parameter :: pi  = 4 * atan(1.0_8)
-    real, parameter :: omega = 7.2921159 * (10 ** (-5))
-    real, parameter :: g = 9.80665
-
     ! Calculate nondimensional model parameters from inputs
+    f = 2.0*omega*sin(latitude * pi / 180.0)
     N = sqrt((g/theta0) * (theta1-theta0)/tropHeight) ! Brunt Vaisala Frequency
     beta = omega**2/((omega**2-f**2)**(1/2)*N)
     Atilde = .5*delTheta*(g/(pi*300))*h**(-1)*omega**(-3)/(12*60*60)
+
+    print *, omega
 
     !$OMP PARALLEL
 

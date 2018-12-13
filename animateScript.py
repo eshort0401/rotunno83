@@ -54,6 +54,6 @@ ds.w.attrs['units'] = '-'
 ds = redimensionalise(ds, h, f, N)
 
 # Animate
-#animateVelocity(ds)
-animatePsi(ds)
+animateVelocity(ds)
+#animatePsi(ds)
 #animateTheta(ds, theta)
