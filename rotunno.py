@@ -32,19 +32,18 @@ def redimensionalise(ds, h, f, N):
 
     return ds
 
-def calcTheta(
-        ds,
-        h=(11.0*10**3)/8, # e-folding height for heating
-        theta0=300.0, # Potential temperature (K) at surface
-        theta1=360.0, # Potential temperature (K) at tropopause
-        tropHeight=11.0*10**3, # Tropopause height (m)
-        ):
+def calcTheta(ds):
     
     w = ds['w'].values.T
     xi = ds['xi'].values
     zeta = ds['zeta'].values
     tau = ds['tau'].values
     xi0 = ds.xi0
+    h = ds.h
+    theta0 = ds.theta0
+    theta1 = ds.theta1
+    tropHeight = ds.tropHeight
+    N = ds.N
     
     # Specify constants
     omega = 2*np.pi/(24*3600)
@@ -53,7 +52,6 @@ def calcTheta(
     thetaBar = np.zeros(np.shape(w))
     d_thetaBar_d_z = (theta1-theta0)/tropHeight
     d_thetaBar_d_zeta = h * d_thetaBar_d_z # Recall zeta * h = z
-    N = np.sqrt((g/theta0) * d_thetaBar_d_z) # Brunt Vaisala Frequency
     
     for i in np.arange(0,np.size(tau)):
         thetaBar[:,:,i] = np.outer(
@@ -245,7 +243,8 @@ def animatePsi(ds):
     plt.title('Stream function [' + ds.psi.attrs['units'] + ']')
     plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
     plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
-    plt.colorbar(contourPlot)
+    cbar = plt.colorbar(contourPlot)
+    cbar.set_label('[' + ds.psi.attrs['units'] + ']')
 
     def update(i):
         label = 'timestep {0}'.format(i)
@@ -383,13 +382,17 @@ def animateTheta(ds, theta):
     fig, ax = plt.subplots()
 
     [Xi,Zeta]=np.meshgrid(xi,zeta,indexing='ij')
+        
+    thetaMax=np.ceil(np.max(theta)/20)*20
+    thetaMin=np.floor(np.min(theta)/20)*20
     
-    levels=np.arange(260, 380, 20)
-    
-    thetaMax=np.ceil(np.max(theta))
-    thetaMin=np.floor(np.min(theta))
-    
-    thetaInc = np.round((thetaMax-thetaMin)/10,1)    
+    if thetaMax-thetaMin > 200:
+        thetaInc = 40
+    elif thetaMax-thetaMin > 100:
+        thetaInc = 20
+    else:
+        thetaInc = 10
+
     levels=np.arange(thetaMin,thetaMax+thetaInc,thetaInc)
     
     contourPlot = ax.contourf(

@@ -4,26 +4,20 @@ program rotunnoCaseTwo
     use math
     implicit none
 
-    ! Specify real precision
-    integer, parameter :: dp = selected_real_kind(15, 307)
-
-    integer :: narg, argInd
+    integer :: narg
     real :: latitude, xi0, h, delTheta, theta0, theta1, tropHeight
 
-    integer(kind=4) :: ncid, status
+    integer(kind=4) :: ncid
 
     ! Third dimension (time) size should be a multiple of 4.
     complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
-    complex :: b(81,41,32) ! Non dimensional bouyancy
     real :: xi(81), zeta(41), tau(32), k(2001)
-    real(dp) :: beta, Atilde, N, f
+    real :: beta, Atilde, N, f
 
     ! Constants
-    real, parameter :: pi  = 4 * atan(1.0_8)
-    real(dp), parameter :: omega = 7.2921159 * (10 ** (-5))
-    real(dp), parameter :: g = 9.80665
-
-    character(len=32) :: name
+    real, parameter :: pi  = 4 * atan(1.0_16)
+    real, parameter :: omega = 7.2921159 * 10.0 ** (-5)
+    real, parameter :: g = 9.80665
 
     xi0 = 0.2
     latitude = 5.0 ! Degrees
@@ -52,10 +46,11 @@ program rotunnoCaseTwo
     ! Calculate nondimensional model parameters from inputs
     f = 2.0*omega*sin(latitude * pi / 180.0)
     N = sqrt((g/theta0) * (theta1-theta0)/tropHeight) ! Brunt Vaisala Frequency
-    beta = omega**2/((omega**2-f**2)**(1/2)*N)
-    Atilde = .5*delTheta*(g/(pi*300))*h**(-1)*omega**(-3)/(12*60*60)
+    beta = omega**2/(N*sqrt(omega**2-f**2))
+    Atilde = .5*delTheta*(g/(pi*theta0))*h**(-1)*omega**(-3)/(12*60*60)
 
     print *, omega
+    print *, beta
 
     !$OMP PARALLEL
 
@@ -64,7 +59,7 @@ program rotunnoCaseTwo
         0.0, 4.0, size(zeta), &! zetaMin, zetaMax, zetaN
         0.0, 20.0, size(k), &! k
         size(tau), beta, Atilde, xi0, latitude, &! tauN, beta, Atilde, xi0, lat
-        psi, u, v, w, b, xi, zeta, tau &! Outputs
+        psi, u, v, w, xi, zeta, tau &! Outputs
     )
 
     !$OMP END PARALLEL
@@ -74,7 +69,7 @@ program rotunnoCaseTwo
         xi, zeta, tau, &
         int(size(xi), 4), int(size(zeta), 4), int(size(tau), 4), &
         'xi','zeta','tau', &
-        'dimensionless','dimensionless','dimensionless' &
+        '-','-','-' &
     )
 
     ncid = add_var_nc_3d( &
@@ -112,7 +107,7 @@ contains
         zetaMin, zetaMax, zetaN, &! zeta
         kMin, kMax, kN, &! k (wavenumber)
         tauN, beta, Atilde, xi0, latitude, &! other parameters
-        psi, u, v, w, b, xi, zeta, tau &! outputs
+        psi, u, v, w, xi, zeta, tau &! outputs
      )
 
     ! Inputs
@@ -129,12 +124,10 @@ contains
 
     ! Constants
     real, parameter :: pi  = 4 * atan(1.0_8)
-    real, parameter :: N = 0.005
-    real, parameter :: omega = 7.2921159 * (10 ** (-5))
+    real, parameter :: omega = 7.2921159 * (10.0 ** (-5))
 
     ! Outputs
     complex, intent(out) :: psi(xiN, zetaN, tauN)
-    complex, intent(out) :: b(xiN, zetaN, tauN)
     complex, intent(out) :: u(xiN, zetaN, tauN)
     complex, intent(out) :: v(xiN, zetaN, tauN)
     complex, intent(out) :: w(xiN, zetaN, tauN)
@@ -197,15 +190,6 @@ contains
             (u(:,:,ind_i) + u(:,:,ind_im1)) * dtau * sin(latitude * pi / 180) &
         )
     enddo
-
-    ! Calculate b(tilde) by numerically integrating non dimensional form of
-    ! equation (4) in Rotunno (1983).
-    ! Note error in Rotunno (1983): b = bTilde * h * omega ^ 2, not omega ^ 3
-    ! This gives dbTilde_dtau = Qtilde - (N/omega) ^ 2 - wTilde
-    ! (N/omega)^2 is like a Berger number with H = L.
-
-    ! b(:,:,1) = - ((N/omega) ** 2)
-    ! tesT
 
 end subroutine solveCaseTwo
 
