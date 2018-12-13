@@ -9,4 +9,4 @@
 #PBS -l wd
  
 # Run fortran program
-./rotunnoCaseTwoTest
+./rotunnoCaseTwo 0.21 10.0

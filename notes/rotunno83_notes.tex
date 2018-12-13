@@ -141,7 +141,21 @@ Note that $\left(\frac{N}{\omega}\right)^2$ is essentially the Berger number wit
 &\phantom{=} \frac{\tilde{b}_{k+1}-\tilde{b}_{k}}{\Delta \tau} = \tilde{Q}_k - \left(\frac{N}{\omega}\right)^2 \tilde{w}_k \\
 &= \tilde{b}_{k+1}-\tilde{b}_{k} = \Delta \tau\left(\tilde{Q}_k - \left(\frac{N}{\omega}\right)^2 \tilde{w}_k \right).
 \end{align*}
-This produces a linear system of $\tau_N$ linearly independent equations in $\tau_N$ unknowns. However, in this form the system is singular - so substitute the equation for $\tilde{b_1}$ for $\tilde{b_1}+\tilde{b_\frac{\tau_n}{2}}=0$ to impose symmetry on the bouyancy. Note can use $\tilde{b_1}+\tilde{b_{\left\lfloor\frac{\tau_n}{2}\right\rfloor}! This works - we can solve for bouyancy even without initial conditions! From bouyancy can extract potential temperature! 
+This produces a linear system of $\tau_N$ linearly independent equations in $\tau_N$ unknowns. However, in this form the system is singular - so substitute the equation for $\tilde{b_1}$ for $\tilde{b_1}+\tilde{b_\frac{\tau_n}{2}}=0$ to impose symmetry on the bouyancy. Note can use $\tilde{b_1}+\tilde{b}_{\left\lfloor\frac{\tau_n}{2}\right\rfloor}$! This works - we can solve for bouyancy even without initial conditions! From bouyancy can extract potential temperature! 
+
+\section{Choosing $\tilde{A}$}
+Note that from equation $(4)$ we have at the surface
+\begin{equation*}
+\frac{\partial b}{\partial t} = \frac{g}{\theta_0}\frac{\partial \theta'}{\partial t}= Q,
+\end{equation*}
+as $w=0$ at the surface. Thus letting $\theta_M$ and $\theta_m$ denote the land surface temperature maxima and minima respectively, and noting that $\left(\frac{\pi}{2} + \tan^{-1} \frac{x}{x_0} \right)$ maps onto $\left(0, \pi \right)$, we have
+\begin{align*}
+\frac{g}{\theta_0}\frac{\theta_M - \theta_m}{12\cdot 60\cdot 60} =  \left( \sin\frac{\pi}{2} - \sin\frac{3\pi}{2} \right)A\pi = 2 A \pi,
+\end{align*}
+with $A \pi$ the supremum of $H$ at the surface, and it taking 12 hours to go from maximum to minimum temperature. Multiplying both sides by $h^{-1} \omega^{-3}$ gives  
+\begin{align*}
+\tilde{A} = \frac{g}{2 \pi \theta_0}\frac{\theta_M - \theta_m}{12\cdot 60\cdot 60} h^{-1} \omega ^{-3}. 
+\end{align*}
 
 \bibliography{../../Ewan_Short_Masters/Bibliography/ewansbibli.bib}
 

@@ -4,19 +4,50 @@ program rotunnoCaseTwo
     use math
     implicit none
 
+    integer :: narg, argInd
+    real :: latitude, xi0, h, delTheta, theta0, theta1, tropHeight
+
     integer(kind=4) :: ncid, status
 
     ! Third dimension (time) size should be a multiple of 4.
     complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
     complex :: b(81,41,32) ! Non dimensional bouyancy
     real :: xi(81), zeta(41), tau(32), k(2001)
-    real :: beta, Atilde, xi0, latitude
+    real :: beta, Atilde, N
 
-    ! Specify model parameters
-    beta = 7.27*10.0**(-3)
-    Atilde = 10.0**3
     xi0 = 0.2
     latitude = 5.0
+    h = 1375.0
+    delTheta = 8
+    theta0 = 300.0
+    theta1 = 360.0
+    tropHeight = 11000.0
+
+    narg = command_argument_count()
+
+    ! Read in command line arguments if present
+    if (narg >= 1) read_cl_real_arg(1, xi0)
+    if (narg >= 2) read_cl_real_arg(2, latitude)
+    if (narg >= 3) read_cl_real_arg(3, h)
+    if (narg >= 4) read_cl_real_arg(4, delTheta)
+    if (narg >= 5) read_cl_real_arg(5, theta0)
+    if (narg >= 6) read_cl_real_arg(6, theta1)
+    if (narg >= 7) read_cl_real_arg(7, tropHeight)
+
+    if (narg >= 8) then
+        print *, 'Error: rotunnoCaseTwo only accepts between 0 and 7 arguments!'
+        stop
+    endif
+
+    ! Constants
+    real, parameter :: pi  = 4 * atan(1.0_8)
+    real, parameter :: omega = 7.2921159 * (10 ** (-5))
+    real, parameter :: g = 9.80665
+
+    ! Calculate nondimensional model parameters from inputs
+    N = sqrt((g/theta0) * (theta1-theta0)/tropHeight) ! Brunt Vaisala Frequency
+    beta = omega**2/((omega**2-f**2)**(1/2)*N)
+    Atilde = .5*delTheta*(g/(pi*300))*h**(-1)*omega**(-3)/(12*60*60)
 
     !$OMP PARALLEL
 
@@ -60,6 +91,12 @@ program rotunnoCaseTwo
     ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "Atilde", Atilde)
     ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "xi0", xi0)
     ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "lat", latitude)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "N", N)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "theta0", theta0)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "theta1", theta1)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "tropHeight", tropHeight)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "delTheta", delTheta)
+    ncid = add_global_attr_nc('./rotunnoCaseTwo.nc', "h", h)
 
 contains
     subroutine solveCaseTwo( &
@@ -175,13 +212,5 @@ function fun(xi,zeta,tau,k,xi0) result(f)
         exp(-cmplx(zeta))*sin(cmplx(tau)))/(1+cmplx(k**2))
 
 end function fun
-
-function H(xi, zeta, xi0, Atilde, pi) result(f)
-
-    real, intent(in) :: xi, zeta, xi0, Atilde, pi
-    complex :: f
-    f = Atilde * ((pi / 2) + atan(cmplx(xi) / cmplx(xi0))) * exp(-cmplx(zeta))
-
-end function H
 
 end program rotunnoCaseTwo
