@@ -1,7 +1,7 @@
 import xarray as xr
 import matplotlib.pyplot as plt
 import numpy as np
-from rotunno import animateVelocity, animatePsi, calcTheta, animateTheta, redimensionalise
+from rotunno import animateVelocity, animatePsi, calcTheta, calc_v, animateTheta, animate_v, redimensionalise
 
 plt.close('all')
 
@@ -27,7 +27,8 @@ delTheta = ds.delTheta
 N = ds.N
 f = 2.0 * omega * np.sin(np.deg2rad(lat))
 
-theta, theta0, thetaBar, thetaPrime = calcTheta(ds)
+ds = calcTheta(ds)
+ds = calc_v(ds)
 
 ds.xi.attrs['units'] = '-'
 ds.zeta.attrs['units'] = '-'
@@ -41,6 +42,7 @@ ds.w.attrs['units'] = '-'
 ds = redimensionalise(ds, h, f, N)
 
 # Animate
-#animateVelocity(ds)
-#animatePsi(ds)
-animateTheta(ds, theta)
+animateVelocity(ds)
+animatePsi(ds)
+#animateTheta(ds)
+#animate_v(ds)

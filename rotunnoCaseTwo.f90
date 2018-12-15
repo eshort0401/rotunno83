@@ -10,7 +10,7 @@ program rotunnoCaseTwo
     integer(kind=4) :: ncid
 
     ! Third dimension (time) size should be a multiple of 4.
-    complex :: psi(81,41,32), u(81,41,32), v(81,41,32), w(81,41,32)
+    complex :: psi(81,41,32), u(81,41,32), w(81,41,32)
     real :: xi(81), zeta(41), tau(32), k(2001)
     real :: beta, Atilde, N, f
 
@@ -20,12 +20,12 @@ program rotunnoCaseTwo
     real, parameter :: g = 9.80665
 
     xi0 = 0.2
-    latitude = 5.0 ! Degrees
-    h = 1375.0
-    delTheta = 8.0
+    latitude = 6.0 ! Degrees
+    h = 1500.0
+    delTheta = 6.0
     theta0 = 300.0
     theta1 = 360.0
-    tropHeight = 11000.0
+    tropHeight = 12000.0
 
     narg = command_argument_count()
 
@@ -49,17 +49,14 @@ program rotunnoCaseTwo
     beta = omega**2/(N*sqrt(omega**2-f**2))
     Atilde = .5*delTheta*(g/(pi*theta0))*h**(-1)*omega**(-3)/(12*60*60)
 
-    print *, omega
-    print *, beta
-
     !$OMP PARALLEL
 
     call solveCaseTwo(&
         -2.0, 2.0, size(xi), &! xiMin, xiMax, xiN
         0.0, 4.0, size(zeta), &! zetaMin, zetaMax, zetaN
         0.0, 20.0, size(k), &! k
-        size(tau), beta, Atilde, xi0, latitude, &! tauN, beta, Atilde, xi0, lat
-        psi, u, v, w, xi, zeta, tau &! Outputs
+        size(tau), beta, Atilde, xi0, &! tauN, beta, Atilde, xi0, lat
+        psi, u, w, xi, zeta, tau &! Outputs
     )
 
     !$OMP END PARALLEL
@@ -74,12 +71,6 @@ program rotunnoCaseTwo
 
     ncid = add_var_nc_3d( &
         './rotunnoCaseTwo.nc',real(u), 'u', &
-        int(size(xi), 4), int(size(zeta), 4), int(size(tau), 4), &
-        'xi','zeta','tau' &
-    )
-
-    ncid = add_var_nc_3d( &
-        './rotunnoCaseTwo.nc',real(v), 'v', &
         int(size(xi), 4), int(size(zeta), 4), int(size(tau), 4), &
         'xi','zeta','tau' &
     )
@@ -106,18 +97,18 @@ contains
         xiMin, xiMax, xiN, &! xi
         zetaMin, zetaMax, zetaN, &! zeta
         kMin, kMax, kN, &! k (wavenumber)
-        tauN, beta, Atilde, xi0, latitude, &! other parameters
-        psi, u, v, w, xi, zeta, tau &! outputs
+        tauN, beta, Atilde, xi0, &! other parameters
+        psi, u, w, xi, zeta, tau &! outputs
      )
 
     ! Inputs
     real, intent(in) :: xiMin, xiMax, zetaMin, zetaMax, kMin, kMax
     integer, intent(in) :: xiN, zetaN, kN
     integer, intent(in) :: tauN ! Should be a multiple of 4
-    real, intent(in) :: beta, Atilde, xi0, latitude
+    real, intent(in) :: beta, Atilde, xi0
 
     ! Subroutine variables
-    integer :: i, j, l, m, v0_ind, ind_i, ind_im1
+    integer :: i, j, l, m
     real :: dxi, dzeta, dtau
     complex :: int_fun_k(kN)
     real :: k(kN)
@@ -129,7 +120,6 @@ contains
     ! Outputs
     complex, intent(out) :: psi(xiN, zetaN, tauN)
     complex, intent(out) :: u(xiN, zetaN, tauN)
-    complex, intent(out) :: v(xiN, zetaN, tauN)
     complex, intent(out) :: w(xiN, zetaN, tauN)
     real, intent(out) :: xi(xiN), zeta(zetaN), tau(tauN)
 
@@ -171,25 +161,6 @@ contains
     u(:,2:zetaN-1,:) = (psi(:,3:,:) - psi(:,1:zetaN-2,:)) / (2 * dzeta)
     u(:,1,:) = (psi(:,2,:) - psi(:,1,:)) / dzeta
     u(:,zetaN,:) = (psi(:,zetaN,:) - psi(:,zetaN-1,:)) / dzeta
-
-    ! Calculate v from dv_dtau * omega + f * u = 0
-    ! v is a perturbation, so it should integrate to zero.
-    ! This can be achieved by assuming v=0 when abs(u) is maximised.
-    ! abs(u) is maximised/minimised at tau = pi / 2.
-
-    v0_ind = floor(tauN / 4.0) + 1
-    v(:,:,v0_ind) = 0
-
-    do i = 1, tauN-1, 1
-
-        ind_i = mod((v0_ind + i - 1), tauN) + 1
-        ind_im1 = mod((v0_ind + (i - 1) - 1), tauN) + 1
-
-        v(:,:,ind_i) = ( &
-            v(:,:,ind_im1) - &
-            (u(:,:,ind_i) + u(:,:,ind_im1)) * dtau * sin(latitude * pi / 180) &
-        )
-    enddo
 
 end subroutine solveCaseTwo
 

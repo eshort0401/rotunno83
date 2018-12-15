@@ -57,10 +57,18 @@ Now, starting from the corrected form of equation 37 we have,
 &\phantom{=} -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{-\xi_0 k} e^{-\zeta} e^{-i k\zeta'} d\zeta' \right] dk \\
 &= -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{-ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{-\xi_0 k} e^{-\zeta} e^{-ik\zeta'} d\zeta' \right] dk \\
 &\phantom{=} -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\xi_0 k} e^{-\zeta} e^{-i k\zeta'} d\zeta' \right] dk \\
-&=-\beta i e^{-i\tau} \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \left[\frac{1}{k}e^{-i k \zeta'} \int_0^\zeta e^{-\zeta'}  \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\zeta'} e^{-ik\zeta'} d\zeta' \right] dk \label{Eq:rotNotes} \\ 
-&=-\beta \int_{0}^{\infty} \cos\left(k\xi \right) \left[e^{-i k \zeta'} \int_0^\zeta \left(\frac{\partial \tilde{Q}}{\partial \xi}\right) \sin k\zeta' d\zeta' + \sin k \zeta \int_\zeta^\infty \left(\frac{\partial \tilde{Q}}{\partial \xi}\right) e^{-ik\zeta'} d\zeta' \right] \frac{dk}{k}. \label{Eq:rotNotes2}
+&=-\beta i e^{-i\tau} \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta e^{-\zeta'}  \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\zeta'} e^{-ik\zeta'} d\zeta' \right] dk \label{Eq:rotNotes} \\ 
+&=-\beta \int_{0}^{\infty} \cos\left(k\xi \right) \left[e^{-i k \zeta} \int_0^\zeta \left(\frac{\partial \tilde{Q}}{\partial \xi}\right) \sin k\zeta' d\zeta' + \sin k \zeta \int_\zeta^\infty \left(\frac{\partial \tilde{Q}}{\partial \xi}\right) e^{-ik\zeta'} d\zeta' \right] \frac{dk}{k}. \label{Eq:rotNotes2}
 \end{align}
-Note (\ref{Eq:rotNotes2}) matches what's in Rotunno's notes. From (\ref{Eq:rotNotes2}) the derivation is easy.
+Note (\ref{Eq:rotNotes2}) matches what's in Rotunno's notes. From (\ref{Eq:rotNotes}) we have
+\begin{align*}
+&\phantom{=} -\beta i e^{-i\tau} \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta e^{-\zeta'}  \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\zeta'} e^{-ik\zeta'} d\zeta' \right] dk \\ 
+& = -\beta \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \left[\frac{1}{k} i e^{-i\tau} e^{-i k \zeta} \left(-\frac{e^{-\zeta}\left(\sin\left(k\zeta\right) + k\cos\left(k\zeta\right)\right)}{k^2+1} + \frac{k}{k^2+1} \right) \right. \\ &\phantom{=} \left. + i e^{-i\tau} \frac{1}{k}\sin k \zeta \left( \frac{1-ik}{k^2+1} e^{\left(-i k - 1\right)\zeta} \right) \right] dk
+\end{align*}
+and the real part of this is therefore
+\begin{align*}
+& = -\beta \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \frac{1}{k^2+1} \left[\sin\left(\tau +k\zeta \right)-{e}^{-\zeta}\sin\left(\tau \right) \right].
+\end{align*}
 
 My attempt at deriving equation (\ref{Eq:target}) - equation (38) in Rotunno's paper - is very messy. It didn't quite work originally as I was using the incorrect version of (37). Now having the correct version, let's see if it works. We have from (\ref{Eq:start}),
 \begin{align}
@@ -141,7 +149,9 @@ Note that $\left(\frac{N}{\omega}\right)^2$ is essentially the Berger number wit
 &\phantom{=} \frac{\tilde{b}_{k+1}-\tilde{b}_{k}}{\Delta \tau} = \tilde{Q}_k - \left(\frac{N}{\omega}\right)^2 \tilde{w}_k \\
 &= \tilde{b}_{k+1}-\tilde{b}_{k} = \Delta \tau\left(\tilde{Q}_k - \left(\frac{N}{\omega}\right)^2 \tilde{w}_k \right).
 \end{align*}
-This produces a linear system of $\tau_N$ linearly independent equations in $\tau_N$ unknowns. However, in this form the system is singular - so substitute the equation for $\tilde{b_1}$ for $\tilde{b_1}+\tilde{b_\frac{\tau_n}{2}}=0$ to impose symmetry on the bouyancy. Note can use $\tilde{b_1}+\tilde{b}_{\left\lfloor\frac{\tau_n}{2}\right\rfloor}$! This works - we can solve for bouyancy even without initial conditions! From bouyancy can extract potential temperature! 
+This produces a linear system of $\tau_N$ linearly independent equations in $\tau_N$ unknowns. However, in this form the system is singular - so substitute the equation for $\tilde{b_1}$ for $\tilde{b_1}+\tilde{b_\frac{\tau_n}{2}}=0$ to impose symmetry on the bouyancy. Note can use $\tilde{b_1}+\tilde{b}_{\left\lfloor\frac{\tau_n}{2}\right\rfloor}$! This works - we can solve for bouyancy even without initial conditions! From bouyancy can extract potential temperature!
+
+Note that using this method appears to produce potential temperature perturbations that are two large, i.e. $\pm 40$ K, or even larger! Compare this with the WRF simulation of \citet{vincent16} producing perturbations of $\pm 4$ K. Could it be that the WRF data are composites, and that the signal is being diluted? Note that increasing $h$ decreases $\theta'$. Error possibly due to definition of $\bar{\theta}$ in code? 
 
 \section{Choosing $\tilde{A}$}
 Note that from equation $(4)$ we have at the surface

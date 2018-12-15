@@ -8,7 +8,7 @@ import datetime
 def redimensionalise(ds, h, f, N):
     
     # Specify constants
-    omega = 2*np.pi/(24*3600)
+    omega = 7.2921159 * 10.0 ** (-5)
     
     ds = ds.assign_coords(zeta = ds.zeta * h)
     ds.zeta.attrs['units'] = 'm'
@@ -46,8 +46,8 @@ def calcTheta(ds):
     N = ds.N
     
     # Specify constants
-    omega = 2*np.pi/(24*3600)
-    g = 9.81
+    omega = 7.2921159 * 10.0 ** (-5)
+    g = 9.80665
     
     thetaBar = np.zeros(np.shape(w))
     d_thetaBar_d_z = (theta1-theta0)/tropHeight
@@ -55,7 +55,7 @@ def calcTheta(ds):
     
     for i in np.arange(0,np.size(tau)):
         thetaBar[:,:,i] = np.outer(
-                np.ones(np.size(xi)),zeta * d_thetaBar_d_zeta
+                np.ones(np.size(xi)), zeta * d_thetaBar_d_zeta
                 )
     
     # Specify heating function array
@@ -73,7 +73,12 @@ def calcTheta(ds):
     dtau = tau[1]-tau[0]
     
     LHS[0, 0] = 1
-    LHS[0,16] = 1
+    if (np.mod(np.size(tau),2) == 0):
+        LHS[0,int(np.size(tau)/2)] = 1
+    else:
+        LHS[0,np.floor(np.size(tau)/2)] = 1/2
+        LHS[0,np.floor(np.size(tau)/2)] = 1/2
+    
     RHS[0] = 0
     for k in np.arange(1,np.size(tau)):
         LHS[k, np.mod(k+1,32)] = 1
@@ -95,7 +100,54 @@ def calcTheta(ds):
             
     theta = theta0 + thetaBar + thetaPrime
     
-    return theta, theta0, thetaBar, thetaPrime
+    ds = ds.assign(theta=(('xi','zeta','tau'),theta))
+    ds = ds.assign(thetaBar=(('xi','zeta','tau'),thetaBar))
+    ds = ds.assign(thetaPrime=(('xi','zeta','tau'),thetaPrime))
+    
+    return ds
+
+def calc_v(ds):
+    w = ds['w'].values.T
+    xi = ds['xi'].values
+    zeta = ds['zeta'].values
+    tau = ds['tau'].values
+    lat=ds.lat
+    
+    # Specify constants
+    omega = 7.2921159 * 10.0 ** (-5)
+    f = 2 * omega * np.sin(np.deg2rad(lat))   
+    
+    LHS = np.zeros((np.size(tau),np.size(tau)))
+    RHS = np.zeros(np.size(tau))
+    dtau = tau[1]-tau[0]
+    
+    LHS[0, 0] = 1
+    if (np.mod(np.size(tau),2) == 0):
+        LHS[0,int(np.size(tau)/2)] = 1
+    else:
+        LHS[0,np.floor(np.size(tau)/2)] = 1/2
+        LHS[0,np.floor(np.size(tau)/2)] = 1/2
+        
+    RHS[0] = 0
+    for k in np.arange(1,np.size(tau)):
+        LHS[k, np.mod(k+1,np.size(tau))] = 1
+        LHS[k, k] = -1
+        
+    # Initialise v matrix
+    v = np.zeros(np.shape(w)) 
+    
+    # Calculate bouyancy
+    for i in np.arange(0,np.size(xi)):
+        for j in np.arange(0, np.size(zeta)):
+            for k in np.arange(1,np.size(tau)):
+                RHS[k] = - dtau * (f/omega) * w[i,j,k]
+                
+            v[i,j,:] = np.linalg.solve(LHS,RHS)
+            
+    ds = ds.assign(v=(('xi','zeta','tau'),v))
+            
+    return ds
+    
 
 def plotPsi(ds,t=0):
 
@@ -127,7 +179,7 @@ def plotPsi(ds,t=0):
     [Xi,Zeta]=np.meshgrid(xi,zeta,indexing='ij')
 
     contourPlot=ax.contourf(Xi,Zeta,psi[:,:,t],levels,vmin=psiMin,
-                             vmax=psiMax, cmap='RdBu')
+                             vmax=psiMax, cmap='RdBu_r')
     plt.title('Stream function [' + ds.psi.attrs['units'] + ']')
     plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
     plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
@@ -229,7 +281,6 @@ def animatePsi(ds):
 
     # psi plot
     fig, ax = plt.subplots()
-    fig.set_tight_layout(True)
 
     psiInc = np.round(np.ceil(np.max(np.abs(psi))*10)/100,1)
     psiMax = np.ceil(np.max(np.abs(psi))*10)/10
@@ -238,7 +289,7 @@ def animatePsi(ds):
     [Xi,Zeta]=np.meshgrid(xi,zeta,indexing='ij')
 
     contourPlot=ax.contourf(Xi,Zeta,psi[:,:,0],levels,vmin=-psiMax,
-                             vmax=psiMax, cmap='RdBu')
+                             vmax=psiMax, cmap='RdBu_r')
     
     plt.title('Stream function [' + ds.psi.attrs['units'] + ']')
     plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
@@ -252,7 +303,7 @@ def animatePsi(ds):
         # Update the line and the axes (with a new xlabel). Return a tuple of
         # "artists" that have to be redrawn for this frame.
         contourPlot=ax.contourf(Xi,Zeta,psi[:,:,i],levels,vmin=-psiMax,
-                               vmax=psiMax, cmap='RdBu')
+                               vmax=psiMax, cmap='RdBu_r')
         return contourPlot, ax
 
     anim = FuncAnimation(fig, update, frames=np.arange(0, np.size(tau)),
@@ -359,12 +410,106 @@ def animateVelocity(ds):
 
     return
 
-def animateTheta(ds, theta):
+def animate_v(ds):
 
+    u = ds['u'].values.T
+    v = ds['v'].values
+    w = ds['w'].values.T
     xi = ds['xi'].values
     zeta = ds['zeta'].values
     tau = ds['tau'].values
     
+    # Plot
+    plt.rc('text', usetex=False)
+
+    plt.ioff()
+
+    # Initialise fonts
+    rcParams['font.family'] = 'serif'
+    rcParams.update({'font.serif': 'Times New Roman'})
+    rcParams.update({'font.size': 12})
+    rcParams.update({'font.weight': 'normal'})
+
+    print('Animating v.')
+
+    # Velocity plot
+    fig, ax = plt.subplots()
+
+    #vInc = np.round(np.ceil(np.max(np.abs(v))*10)/100,1)
+    vMax = np.ceil(np.max(np.abs(v))*10)/10
+    vInc = vMax/10
+    levels=np.arange(-vMax,vMax+vInc,vInc)
+
+    [Xi,Zeta]=np.meshgrid(xi,zeta,indexing='ij')
+
+    contourPlot=ax.contourf(Xi,Zeta,v[:,:,0],levels,vmin=-vMax,
+                             vmax=vMax, cmap='RdBu_r')
+
+    skip=int(np.floor(np.size(xi)/16))
+    
+    speed=(u**2+w**2)**(1/2)    
+    speedMax = np.ceil(np.max(speed)*10)/10
+
+    uQ=np.sign(u)*(np.abs(u)/speedMax)**(2/3)*speedMax
+    wQ=np.sign(w)*(np.abs(w)/speedMax)**(2/3)*speedMax
+
+    sQ=int(np.ceil(skip/2))
+    speedMaxQ=np.amax((uQ[sQ::skip,sQ::skip,:]**2+ \
+                       wQ[sQ::skip,sQ::skip,:]**2)**(1/2))
+
+    dxi=xi[1]-xi[0]
+
+    ax.quiver(Xi[sQ::skip,sQ::skip], Zeta[sQ::skip,sQ::skip],
+               uQ[sQ::skip,sQ::skip,0], wQ[sQ::skip,sQ::skip,0],
+               units='xy', scale=speedMaxQ/(skip*dxi))
+
+    plt.title('v Velocity [' + ds.u.attrs['units'] + ']')
+    plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
+    plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
+    cbar=plt.colorbar(contourPlot)
+    cbar.set_label('v [' + ds.v.attrs['units'] + ']')
+
+    def update(i):
+        label = 'timestep {0}'.format(i)
+        print(label)
+        # Update the line and the axes (with a new xlabel). Return a tuple of
+        # "artists" that have to be redrawn for this frame.
+        ax.collections = []
+        
+        contourPlot=ax.contourf(Xi,Zeta,v[:,:,i],levels,vmin=-vMax,
+                             vmax=vMax, cmap='RdBu_r')
+
+        ax.quiver(Xi[sQ::skip,sQ::skip], Zeta[sQ::skip,sQ::skip],
+               uQ[sQ::skip,sQ::skip,i], wQ[sQ::skip,sQ::skip,i],
+               units='xy', scale=speedMaxQ/(skip*dxi))
+
+        return contourPlot, ax
+
+    anim = FuncAnimation(fig, update, frames=np.arange(0, np.size(tau)),
+                         interval=200)
+
+    dt=str(datetime.datetime.now())[0:-7]
+    dt=dt.replace(" ", "_")
+    dt=dt.replace(":", "_")
+    dt=dt.replace("-", "")
+
+    outFile='./figures/v_velocity_' + dt + '.gif'
+
+    anim.save(outFile, dpi=80, writer='imagemagick')
+
+    plt.close("all")
+
+    return
+
+def animateTheta(ds):
+
+    xi = ds['xi'].values
+    zeta = ds['zeta'].values
+    tau = ds['tau'].values
+    theta = ds['theta'].values
+    u = ds['u'].values.T
+    w = ds['w'].values.T
+
     # Plot
     plt.rc('text', usetex=False)
 
@@ -408,6 +553,24 @@ def animateTheta(ds, theta):
             linewidths=1.4
             )
     
+    skip=int(np.floor(np.size(xi)/16))
+    
+    speed=(u**2+w**2)**(1/2)    
+    speedMax = np.ceil(np.max(speed)*10)/10
+
+    uQ=np.sign(u)*(np.abs(u)/speedMax)**(2/3)*speedMax
+    wQ=np.sign(w)*(np.abs(w)/speedMax)**(2/3)*speedMax
+
+    sQ=int(np.ceil(skip/2))
+    speedMaxQ=np.amax((uQ[sQ::skip,sQ::skip,:]**2+ \
+                       wQ[sQ::skip,sQ::skip,:]**2)**(1/2))
+
+    dxi=xi[1]-xi[0]
+
+    ax.quiver(Xi[sQ::skip,sQ::skip], Zeta[sQ::skip,sQ::skip],
+               uQ[sQ::skip,sQ::skip,0], wQ[sQ::skip,sQ::skip,0],
+               units='xy', scale=speedMaxQ/(skip*dxi))
+    
     plt.title('Potential Temperature [K]')
     plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
     plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
@@ -430,6 +593,12 @@ def animateTheta(ds, theta):
             Xi, Zeta, theta[:,:,i], colors='black',
             linestyles=None, levels=levels,
             linewidths=1.4
+            )
+
+        ax.quiver(
+            Xi[sQ::skip,sQ::skip], Zeta[sQ::skip,sQ::skip],
+            uQ[sQ::skip,sQ::skip,i], wQ[sQ::skip,sQ::skip,i],
+            units='xy', scale=speedMaxQ/(skip*dxi)
             )
 
         return contourPlot, ax
