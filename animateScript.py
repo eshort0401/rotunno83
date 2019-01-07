@@ -40,9 +40,13 @@ ds.w.attrs['units'] = '-'
 
 # Calculate dimensional variables
 ds = redimensionalise(ds, h, f, N)
-
+if ds.lat < 30:
+    ds.attrs['xi0'] = ds.xi0 * N * h * ((omega**2 - f**2)**(-1/2))
+elif ds.lat > 30: 
+    ds.attrs['xi0'] = ds.xi0 * N * h * ((f**2-omega**2)**(-1/2))
+    
 # Animate
-animateVelocity(ds)
-animatePsi(ds)
+#animateVelocity(ds)
+#animatePsi(ds)
 #animateTheta(ds)
 #animate_v(ds)

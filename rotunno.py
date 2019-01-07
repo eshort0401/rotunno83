@@ -27,7 +27,7 @@ def redimensionalise(ds, h, f, N):
         ds = ds.assign_coords(xi = ds.xi * N * h * ((omega**2 - f**2)**(-1/2)))
     elif ds.lat > 30: 
         ds = ds.assign_coords(xi = ds.xi * N * h * ((f**2-omega**2)**(-1/2)))
-    
+        
     ds.xi.attrs['units'] = 'm'
 
     return ds

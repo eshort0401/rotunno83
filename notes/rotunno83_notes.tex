@@ -32,10 +32,92 @@ Equation (37) should be
 \item
 $\tilde{Q}$ should have time dependance $e^{-i\left(\tau-\frac{\pi}{2}\right)}=ie^{-i\tau}$ not simply $\sin\tau$. 
 \item
-The expression $\tilde{b} = b h^{-1} \omega^{-3}$ in equation (13) should actually be $\tilde{b} = b h^{-1} \omega^{-2}$ to make the units come out right - assuming $b$ has units m s$^{-1}$. 
+The expression $\tilde{b} = b h^{-1} \omega^{-3}$ in equation (13) should actually be $\tilde{b} = b h^{-1} \omega^{-2}$ to make the units come out right - assuming $b$ has units m s$^{-2}$.
 \end{enumerate}
 
+\section{Mid-Latitude Case}
+We begin with equation (14)
+\begin{equation*}
+\frac{\partial^2 \tilde{\psi}}{\partial \xi^2} + \frac{\partial^2 \tilde{\psi}}{\partial \zeta^2} = -\beta \frac{\partial \tilde{Q} }{\partial \xi}.
+\end{equation*}
+Consider the Green's function defined by
+\begin{align*}
+\frac{\partial^2 g}{\partial \xi^2} + \frac{\partial^2 g}{\partial \zeta^2} = \delta(\xi-\xi')\delta(\zeta-\zeta')
+\end{align*}
+where $\xi,\zeta$ can vary over all of $\mathbb{R}$. Integrating over a circle $C$ centred at $\xi',\zeta'$ with radius $a$, where $r$ is the distance from $(\xi',\zeta')$ 
+\begin{align*}
+& \Rightarrow \iint_C \nabla \cdot \nabla g dV = 1 \\
+& \Rightarrow \int_{\partial C} \frac{\partial g}{\partial r} = 1.
+\end{align*}
+If there are no boundaries, then the response of $g$ to singular forcing at $(\xi',\zeta')$ is unnaffected by rotation, and is therefore constant on $\partial C$. Thus 
+\begin{align*}
+& \Rightarrow 2\pi a \left.\frac{\partial g}{\partial r}\right|_a = 1.
+\end{align*}
+Because $a$ was arbitrary we have therefore have
+\begin{align*}
+& \Rightarrow \frac{\partial g}{\partial r} = \frac{1}{2\pi r} \\
+& \Rightarrow g = \frac{\ln\left(r \right)}{2\pi} + c = \frac{1}{4\pi}\ln\left(\left(\xi-\xi'\right)^2+\left(\zeta-\zeta'\right)^2\right) + c.
+\end{align*}
+Can assume without loss of generality that $c=0$, because $c\ne 0$ simply adds a constant to $\tilde{\psi}$, and we only care about the $\xi$ and $\zeta$ derivatives of $\tilde{\psi}$. 
+
 \section{Tropical Case}
+
+\subsection{Deriving Equation (37)}
+Equation (36) gives
+\begin{align*}
+\frac{\partial ^2 \tilde{\psi}}{\partial \xi^2} - \frac{\partial ^2 \tilde{\psi}}{\partial \zeta^2} = -\beta \frac{\partial^2 \tilde{Q}}{\partial \xi^2}.
+\end{align*}
+Take Fourier transform to get
+\begin{align*}
+& \phantom{=} -k^2 \widehat{\tilde{\psi}} - \frac{\partial ^2 \widehat{\tilde{\psi}}}{\partial \zeta^2} = -\beta \frac{\partial^2 \widehat{\tilde{Q}}}{\partial \xi^2} \\
+&= k^2 \widehat{\tilde{\psi}} + \frac{\partial ^2 \widehat{\tilde{\psi}}}{\partial \zeta^2} = \beta \frac{\partial^2 \widehat{\tilde{Q}}}{\partial \xi^2}.
+\end{align*}
+Boundary condition becomes $\left(ik\right)\widehat{\tilde{\psi}}(k,0)=0$, and so $\widehat{\tilde{\psi}}(k,0)=0$ (using the Fourier transform rule for derivatives.) Solve for Green's Function
+\begin{align*}
+&\phantom{=} k^2 G + G_{\zeta\zeta} = \delta\left(\zeta-\zeta'\right).
+\end{align*}
+General solution setting RHS to zero is $G=B_1 e^{i k\zeta} + B_2 e^{-ik\zeta}$. For $\zeta < \zeta'$ the boundary condition gives
+\begin{align*}
+0=B_1+B_2 & \Rightarrow B_2 = -B_1 \\
+& \Rightarrow G = B_1 2i \sin(k\zeta) = A \sin(k\zeta).
+\end{align*}
+Now consider $\zeta > \zeta'$. For $k>0$ we have
+\begin{align*}
+G e^{-i\left(\tau-\frac{\pi}{2}\right)} &= B_1 e^{i k\zeta-i\tau+i\frac{\pi}{2}} + B_2 e^{-ik\zeta-i\tau+i\frac{\pi}{2}} \\
+&= B_1 e^{i \left(k\zeta-\tau+\frac{\pi}{2}\right)} + B_2 e^{-i\left(k\zeta+\tau-\frac{\pi}{2}\right)}.
+\end{align*}
+Recall for gravity waves, energy propagates with the group velocity in the \textit{opposite} direction to the phase velocity. As $\zeta>\zeta'$ we require positive group velocity, and therefore negative phase velocity. Thus $B_1=0$ and $G=B_2e^{-ik\zeta}$. Similarly for $k<0$ we have $G=B_1e^{ik\zeta}$. Thus $G=Be^{-i\sgn(k)k\zeta}$.
+
+Now, continuity requires that 
+\begin{align*}
+\lim_{\zeta\to\zeta'^+} G = \lim_{\zeta\to\zeta'^-} G \\
+\lim_{\zeta\to\zeta'^+} G_\zeta - \lim_{\zeta\to\zeta'^-} G_\zeta = 1. 
+\end{align*}
+Thus 
+\begin{align*}
+&\phantom{\Rightarrow} Be^{-i\sgn(k)k\zeta'} = A\sin(k\zeta') \\
+&\phantom{\Rightarrow} -i\sgn(k)k Be^{-i\sgn(k)k\zeta'} - Ak\cos(k\zeta') = 1 \\
+&\Rightarrow i\sgn(k)k A\sin(k\zeta') + Ak\cos(k\zeta') = -1.
+\end{align*}
+Now, $k>0$
+\begin{align*}
+&\Rightarrow ik A\sin(k\zeta') + Ak\cos(k\zeta') = A k e^{ik\zeta'} = -1 \\
+& \Rightarrow A = -\frac{1}{k} e^{-ik\zeta'}.
+\end{align*}
+Also, $k<0$
+\begin{align*}
+&\Rightarrow -ik A\sin(k\zeta') + Ak\cos(k\zeta') = A k e^{-ik\zeta'} = -1 \\
+& \Rightarrow A = -\frac{1}{k} e^{ik\zeta'}.
+\end{align*}
+Thus in both cases $A = -\frac{1}{k} e^{-\sgn(k) k \zeta'}$. Thus $B=-\sin(k\zeta')$, and so
+\begin{equation*}
+G=
+\begin{cases} -\frac{1}{k} e^{-i\sgn(k)k\zeta'} \sin(k\zeta), & \zeta<\zeta', \\
+-\frac{1}{k}\sin(k\zeta')e^{-i\sgn(k)k\zeta}, & \zeta>\zeta'. 
+\end{cases}
+\end{equation*}
+
+\subsection{Working Through Fourier Transform}
 We are attempting to derive the equation
 \begin{equation}
 \tilde{\psi} (\xi,\zeta,\tau) = -\beta \tilde{A} \int_0^\infty \frac{\cos k\xi e^{-\xi_0 k }}{1+k^2} \left(\sin(k\zeta + \tau) - e^{-\zeta}\sin\tau \right) dk. \label{Eq:target}

@@ -1,0 +1,46 @@
+This is BibTeX, Version 0.99d (TeX Live 2017/Debian)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+The top-level auxiliary file: rotunno83_notes.aux
+The style file: agsm.bst
+Database file #1: ../../Ewan_Short_Masters/Bibliography/ewansbibli.bib.bib
+You've used 2 entries,
+            2909 wiz_defined-function locations,
+            657 strings with 5180 characters,
+and the built_in function-call counts, 5672 in all, are:
+= -- 888
+> -- 71
+< -- 0
++ -- 395
+- -- 21
+* -- 477
+:= -- 1188
+add.period$ -- 2
+call.type$ -- 2
+change.case$ -- 28
+chr.to.int$ -- 2
+cite$ -- 2
+duplicate$ -- 32
+empty$ -- 77
+format.name$ -- 29
+if$ -- 1010
+int.to.chr$ -- 5
+int.to.str$ -- 0
+missing$ -- 2
+newline$ -- 9
+num.names$ -- 20
+pop$ -- 6
+preamble$ -- 1
+purify$ -- 30
+quote$ -- 0
+skip$ -- 27
+stack$ -- 0
+substring$ -- 1235
+swap$ -- 6
+text.length$ -- 28
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 8
+warning$ -- 0
+while$ -- 45
+width$ -- 0
+write$ -- 26
