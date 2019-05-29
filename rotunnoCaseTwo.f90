@@ -20,11 +20,11 @@ program rotunnoCaseTwo
     real, parameter :: g = 9.80665
 
     xi0 = 0.2
-    latitude = 6.0 ! Degrees
+    latitude = 5.0 ! Degrees
     h = 1500.0
-    delTheta = 6.0
+    delTheta = 6.0 ! Daily change in potential temperature
     theta0 = 300.0
-    theta1 = 360.0
+    theta1 = 350.0
     tropHeight = 12000.0
 
     narg = command_argument_count()

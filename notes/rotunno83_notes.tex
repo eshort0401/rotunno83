@@ -40,11 +40,11 @@ We begin with equation (14)
 \begin{equation*}
 \frac{\partial^2 \tilde{\psi}}{\partial \xi^2} + \frac{\partial^2 \tilde{\psi}}{\partial \zeta^2} = -\beta \frac{\partial \tilde{Q} }{\partial \xi}.
 \end{equation*}
-Consider the Green's function defined by
+Following \citet{duffy01}, consider the ``free-space" Green's function defined by
 \begin{align*}
 \frac{\partial^2 g}{\partial \xi^2} + \frac{\partial^2 g}{\partial \zeta^2} = \delta(\xi-\xi')\delta(\zeta-\zeta')
 \end{align*}
-where $\xi,\zeta$ can vary over all of $\mathbb{R}$. Integrating over a circle $C$ centred at $\xi',\zeta'$ with radius $a$, where $r$ is the distance from $(\xi',\zeta')$ 
+where $\xi,\zeta$ can vary over all of $\mathbb{R}$. Integrating over a circle $C$ centred at $\xi',\zeta'$ with radius $a$, where $r=\sqrt{\left(\xi-\xi'\right)^2+\left(\zeta-\zeta'\right)^2}$ is the distance from $(\xi',\zeta')$ 
 \begin{align*}
 & \Rightarrow \iint_C \nabla \cdot \nabla g dV = 1 \\
 & \Rightarrow \int_{\partial C} \frac{\partial g}{\partial r} = 1.
@@ -58,7 +58,16 @@ Because $a$ was arbitrary we have therefore have
 & \Rightarrow \frac{\partial g}{\partial r} = \frac{1}{2\pi r} \\
 & \Rightarrow g = \frac{\ln\left(r \right)}{2\pi} + c = \frac{1}{4\pi}\ln\left(\left(\xi-\xi'\right)^2+\left(\zeta-\zeta'\right)^2\right) + c.
 \end{align*}
-Can assume without loss of generality that $c=0$, because $c\ne 0$ simply adds a constant to $\tilde{\psi}$, and we only care about the $\xi$ and $\zeta$ derivatives of $\tilde{\psi}$. 
+Can assume without loss of generality that $c=0$, because $c\ne 0$ simply adds a constant to $\tilde{\psi}$, and we only care about the $\xi$ and $\zeta$ derivatives of $\tilde{\psi}$. Furthermore, because $g$ represents a fundamental solution for $\tilde{\psi}$ we have $-\frac{\partial g}{\partial \xi} = \tilde{w} = 0$. Using the method of images, we can obtain a solution satisfying this condition from the free space solution by noting that when $\zeta = 0$,
+\begin{align*}
+\frac{1}{4\pi}\frac{1}{\left(\xi-\xi'\right)^2+\left(\zeta-\zeta'\right)^2} 2\xi - \frac{1}{4\pi}\frac{1}{\left(\xi-\xi'\right)^2+\left(-\zeta-\zeta'\right)^2} 2\xi = 0.
+\end{align*}
+This suggests taking
+\begin{align*}
+g & = \frac{1}{4\pi}\ln\left(\left(\xi-\xi'\right)^2+\left(\zeta-\zeta'\right)^2\right) - \frac{1}{4\pi}\ln\left(\left(\xi-\xi'\right)^2+\left(-\zeta-\zeta'\right)^2\right) \\
+& = \frac{1}{4\pi}\ln\left(\frac{\left(\xi-\xi'\right)^2+\left(\zeta-\zeta'\right)^2}{\left(\xi-\xi'\right)^2+\left(\zeta + \zeta'\right)^2}\right).
+\end{align*}
+The properties of Green's function's then give the solution given by equation (20) of \citet{rotunno83}. Note that when calculating the convolution we integrate over the actual domain of $\tilde{\psi}$, i.e. $-\infty<\xi'<\infty$ and $\zeta'\geq 0$, not over free-space, i.e. $\mathbb{R}^2$. This is because we are only putting real sources in the actual domain.
 
 \section{Tropical Case}
 
@@ -249,6 +258,6 @@ with $A \pi$ the supremum of $H$ at the surface, and it taking 12 hours to go fr
 \tilde{A} = \frac{g}{2 \pi \theta_0}\frac{\theta_M - \theta_m}{12\cdot 60\cdot 60} h^{-1} \omega ^{-3}. 
 \end{align*}
 
-\bibliography{../../Ewan_Short_Masters/Bibliography/ewansbibli.bib}
+\bibliography{../../Bibliography/ewansbibli.bib}
 
 \end{document}
