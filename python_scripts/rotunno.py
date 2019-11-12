@@ -13,10 +13,12 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 import xarray as xr
 
-def solve_rotunno_case_two(xin=161,zetaN=81,tauN=32,kN=2001,
+def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
                            xi0=0.2, latitude=5, h=1500,
                            delTheta=6, theta0=300, theta1=350,
-                           tropHeight=12000):
+                           tropHeight=17000):
+
+    print('Initialising')
 
     # Time interval
     delTau = 2*np.pi/tauN
@@ -44,6 +46,7 @@ def solve_rotunno_case_two(xin=161,zetaN=81,tauN=32,kN=2001,
     beta = omega**2/(N*np.sqrt(omega**2-f**2))
     Atilde = .5*delTheta*(g/(np.pi*theta0))*h**(-1)*omega**(-3)/(12*60*60)
 
+    print('Integrating')
     psi, u, w = integrate_case_two(xi,zeta,tau,k,xi0,beta,Atilde)
 
     ds = xr.Dataset({'psi':(('tau','zeta','xi'),psi),
@@ -54,9 +57,11 @@ def solve_rotunno_case_two(xin=161,zetaN=81,tauN=32,kN=2001,
                      'delTheta':delTheta, 'theta0':theta0,
                      'theta1':theta1, 'tropHeight':tropHeight})
 
+    print('Saving')
     now = str(datetime.datetime.now())[0:-7]
     now=now.replace('-', '').replace(':', '').replace(' ', '_')
     ds.to_netcdf('../datasets/rotunno_case_2_{}.nc'.format(now))
+    return ds
 
 @jit()
 def integrate_case_two(xi,zeta,tau,k,xi0,beta,Atilde):
