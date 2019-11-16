@@ -2,7 +2,7 @@
 import datetime
 
 # Performance
-from numba import jit
+from numba import njit, prange
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -34,7 +34,8 @@ def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
     xi = np.linspace(-2,2,xiN)
     zeta = np.linspace(0,4,zetaN)
     tau = np.arange(0,2*np.pi,delTau)
-    k = np.linspace(0,20,kN)
+
+    k = np.linspace(0,40,kN)
 
     # Define constants
     omega = 7.2921159 * 10.0 ** (-5)
@@ -53,17 +54,20 @@ def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
                      'u':(('tau','zeta','xi'),u),
                      'w':(('tau','zeta','xi'),w)},
                     {'tau': tau, 'zeta':zeta, 'xi':xi},
-                    {'xi0':xi0, 'latitude':latitude, 'h':h,
+                    {'kN':kN, 'xi0':xi0, 'latitude':latitude, 'h':h,
                      'delTheta':delTheta, 'theta0':theta0,
                      'theta1':theta1, 'tropHeight':tropHeight})
 
     print('Saving')
     now = str(datetime.datetime.now())[0:-7]
     now=now.replace('-', '').replace(':', '').replace(' ', '_')
-    ds.to_netcdf('../datasets/rotunno_case_2_{}.nc'.format(now))
+    ds.to_netcdf('../datasets/rotunno_case_2_{}.nc'.format(now),
+                 encoding={'psi':{'zlib':True, 'complevel':9},
+                           'u':{'zlib':True, 'complevel':9},
+                           'w':{'zlib':True, 'complevel':9}})
     return ds
 
-@jit()
+@njit(parallel=True)
 def integrate_case_two(xi,zeta,tau,k,xi0,beta,Atilde):
     psi = np.zeros((tau.size, zeta.size, xi.size))
     u = np.zeros((tau.size, zeta.size, xi.size))
@@ -72,25 +76,24 @@ def integrate_case_two(xi,zeta,tau,k,xi0,beta,Atilde):
     u_integrand = np.zeros(k.size)
     w_integrand = np.zeros(k.size)
     # Perform numerical integration
-    for i in range(xi.size):
+    for i in prange(xi.size):
         for j in range(zeta.size):
             for l in range(tau.size):
-                for m in range(k.size):
-                    psi_integrand[m] = (np.cos(k[m]*xi[i])
-                                        *np.exp(-xi0*k[m])
-                                        *(np.sin(k[m]*zeta[j]+tau[l])
-                                          -np.exp(-zeta[j])*np.sin(tau[l]))
-                                        /(1+k[m]**2))
-                    u_integrand[m] = (k[m]*np.sin(k[m]*xi[i])
-                                      *np.exp(-xi0*k[m])
-                                      *(np.sin(k[m]*zeta[j]+tau[l])
-                                        -np.exp(-zeta[j])*np.sin(tau[l]))
-                                      /(1+k[m]**2))
-                    w_integrand[m] = (np.cos(k[m]*xi[i])
-                                      *np.exp(-xi0*k[m])
-                                      *(k[m]*np.cos(k[m]*zeta[j]+tau[l])
-                                        +np.exp(-zeta[j])*np.sin(tau[l]))
-                                      /(1+k[m]**2))
+                psi_integrand = (np.cos(k*xi[i])
+                                *np.exp(-xi0*k)
+                                *(np.sin(k*zeta[j]+tau[l])
+                                  -np.exp(-zeta[j])*np.sin(tau[l]))
+                                /(1+k**2))
+                u_integrand = (k*np.sin(k*xi[i])
+                              *np.exp(-xi0*k)
+                              *(np.sin(k*zeta[j]+tau[l])
+                                -np.exp(-zeta[j])*np.sin(tau[l]))
+                              /(1+k**2))
+                w_integrand = (np.cos(k*xi[i])
+                              *np.exp(-xi0*k)
+                              *(k*np.cos(k*zeta[j]+tau[l])
+                                +np.exp(-zeta[j])*np.sin(tau[l]))
+                              /(1+k**2))
 
                 psi[l,j,i] = np.trapz(k,psi_integrand)
                 u[l,j,i] = np.trapz(k,u_integrand)
