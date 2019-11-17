@@ -413,7 +413,7 @@ def animatePsi(ds):
     dt=dt.replace(":", "_")
     dt=dt.replace("-", "")
 
-    outFile='./figures/psi_' + dt + '.gif'
+    outFile='../figures/psi_' + dt + '.gif'
 
     anim.save(outFile, dpi=80, writer='imagemagick')
 
@@ -446,7 +446,7 @@ def animateVelocity(ds):
     fig, ax = plt.subplots()
 
     speed=(u**2+w**2)**(1/2)
-    speedInc = np.round(np.ceil(np.max(speed)*10)/100,1)
+    speedInc = np.round(np.ceil(np.max(speed)*10),1)/100
     speedMax = np.ceil(np.max(speed)*10)/10
     speedMin=0
     levels=np.arange(speedMin,speedMax+speedInc,speedInc)
@@ -501,7 +501,8 @@ def animateVelocity(ds):
     dt=dt.replace(":", "_")
     dt=dt.replace("-", "")
 
-    outFile='./figures/velocity_' + dt + '.gif'
+
+    outFile='/home/student.unimelb.edu.au/shorte1/Documents/rotunno83/figures/velocity_' + dt + '.gif'
 
     anim.save(outFile, dpi=80, writer='imagemagick')
 
