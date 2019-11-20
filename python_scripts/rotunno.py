@@ -2,7 +2,7 @@
 import datetime
 
 # Performance
-from numba import njit, prange
+from numba import jit, prange
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -69,7 +69,7 @@ def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
                            'w':{'zlib':True, 'complevel':9}})
     return ds
 
-@njit(parallel=True)
+@jit(parallel=True)
 def integrate_case_two(xi,zeta,tau,k,xi0,beta,Atilde):
     psi = np.zeros((tau.size, zeta.size, xi.size))
     u = np.zeros((tau.size, zeta.size, xi.size))
@@ -673,7 +673,7 @@ def animatePsi(ds):
     # psi plot
     fig, ax = plt.subplots()
 
-    psiInc = np.round(np.ceil(np.max(np.abs(psi))*10)/100,1)
+    psiInc = np.ceil(np.max(np.abs(psi))*10)/100
     psiMax = np.ceil(np.max(np.abs(psi))*10)/10
     levels=np.arange(-psiMax,psiMax+psiInc,psiInc)
 
