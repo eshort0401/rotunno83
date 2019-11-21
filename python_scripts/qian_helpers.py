@@ -30,7 +30,7 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L):
     k_1=np.concatenate([k_2[-1::-1], np.array([1/U]), k_3])
 
     # Perform numerical integration zeta>0
-    for j in tqdm(prange(1,zeta.size), file=sys.stdout):
+    for j in tqdm(prange(1,zeta.size), file=sys.stdout, position=0, leave=True):
         for i in range(xi.size):
             for l in range(tau.size):
 

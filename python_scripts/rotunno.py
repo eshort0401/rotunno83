@@ -19,7 +19,7 @@ from qian_helpers import calc_theta, calc_k_2, calc_k_3
 from rotunno_helpers import integrate_case_two
 
 def calc_rotunno_parameters(theta0=300, theta1=350, delTheta=6, latitude=-10,
-                            tropHeight=16*10**3, h=1500):
+                            tropHeight=16*10**3, h=500):
 
     # Define constants
     omega = 2*np.pi/(24*3600)
@@ -162,7 +162,7 @@ def redimensionalise_rotunno(ds, h=500,
 
     return ds
 
-def redimensionalise_qian(ds,h=1500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
+def redimensionalise_qian(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
 
     omega = 2*np.pi/(24*3600)
     ds = ds.assign_coords(xi = ds.xi*N*h/omega)
