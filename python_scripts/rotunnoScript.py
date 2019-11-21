@@ -1,2 +1,2 @@
 import rotunno
-ds = rotunno.solve_qian() 
+ds = rotunno.solve_qian()

@@ -33,6 +33,17 @@ Equation (37) should be
 $\tilde{Q}$ should have time dependance $e^{-i\left(\tau-\frac{\pi}{2}\right)}=ie^{-i\tau}$ not simply $\sin\tau$. 
 \item
 The expression $\tilde{b} = b h^{-1} \omega^{-3}$ in equation (13) should actually be $\tilde{b} = b h^{-1} \omega^{-2}$ to make the units come out right - assuming $b$ has units m s$^{-2}$.
+\item
+Note formula (13) is incorrect for $\tilde{w}$. Note that 
+\begin{equation}
+\tilde{w}=-\frac{\partial \tilde{\psi}}{\partial \xi}=-\frac{\partial \psi}{\partial \xi}h^{-2}\omega^{-1}=-\frac{\partial \psi}{\partial x}\frac{\partial x}{\partial \xi}h^{-2}\omega^{-1} =w N (f^2-\omega^2)^{-\frac{1}{2}} h^{-1}\omega^{-1} 
+\end{equation}
+and so 
+\begin{equation}
+w=\tilde{w}h\omega(f^2-\omega^2)^\frac{1}{2}N^{-1}
+\end{equation}
+\item
+Note also I suspect my (and Rotunno's) expressions for Fourier transforms may be missing a factor of $\pi$, which explains the additional missing factor of $\pi$ when converting from $Q_0$ in \citet{qian09} to $\tilde{A}$!
 \end{enumerate}
 
 \section{Mid-Latitude Case}
