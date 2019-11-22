@@ -17,6 +17,7 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L):
     psi = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
     u = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
     w = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
+    bq = np.zeros((tau.size, zeta.size, xi.size), dtype=np.complex64)
 
     # Define alternative domains
     theta = calc_theta(s,alpha=alpha)
@@ -27,7 +28,20 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L):
     k_2 = calc_k_2(theta,U)
     k0_2 = calc_k_2(0,U)
 
-    k_1=np.concatenate([k_2[-1::-1], np.array([1/U]), k_3])
+    k_1 = np.concatenate([k_2[-1::-1], np.array([1/U]), k_3])
+    # First bit of domain for calculating bq
+    tauP1=np.arange(-50*np.pi,-10*np.pi,np.pi/32)
+
+    # Calculate bq
+    for i in prange(xi.size):
+        for l in range(tau.size):
+
+            # Calc bq (buoyancy associated with heating)
+            tauP2=np.linspace(-10*np.pi,tau[l],10**3)
+            tauP = np.concatenate((tauP1,tauP2))
+            bq_ig = ((np.pi/2+np.arctan((xi[i]-U*(tau[l]-tauP))/L))
+                     *np.cos(tauP))
+            bq[l,:,i] = np.trapz(bq_ig,tauP)*np.exp(-zeta)
 
     # Perform numerical integration zeta>0
     for j in tqdm(prange(1,zeta.size), file=sys.stdout, position=0, leave=True):
@@ -120,7 +134,8 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L):
     psi = (1/np.pi)*np.real(psi)
     u = (1/np.pi)*np.real(u)
     w = -(1/np.pi)*np.real(w)
-    return psi, u, w
+    bq = np.real(bq)
+    return psi, u, w, bq
 
 @jit(parallel=True)
 def integrate_qian_U0(xi,zeta,tau,s,alpha,L):
@@ -128,6 +143,7 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L):
     psi = np.zeros((2, tau.size, zeta.size, xi.size), dtype=np.complex64)
     u = np.zeros((2, tau.size, zeta.size, xi.size), dtype=np.complex64)
     w = np.zeros((2, tau.size, zeta.size, xi.size), dtype=np.complex64)
+    bq = np.zeros((tau.size, zeta.size, xi.size), dtype=np.complex64)
 
     # Define alternative domains
     theta = calc_theta(s,alpha=alpha)
@@ -142,6 +158,19 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L):
 
     # Create wavenumber domain
     k_1=np.concatenate([k_2[-1::-1], np.array([1/1/(2*np.pi)]), k_3])
+
+    tauP1=np.arange(-50*np.pi,-10*np.pi,np.pi/32)
+
+    # Calculate bq
+    for i in prange(xi.size):
+        for l in range(tau.size):
+
+            # Calc bq (buoyancy associated with heating)
+            tauP2=np.linspace(-10*np.pi,tau[l],10**3)
+            tauP = np.concatenate((tauP1,tauP2))
+            bq_ig = ((np.pi/2+np.arctan(xi[i]/L))
+                     *np.cos(tauP))
+            bq[l,:,i] = np.trapz(bq_ig,tauP)*np.exp(-zeta)
 
     # Perform numerical integration zeta>0
     for j in tqdm(prange(0,zeta.size), file=sys.stdout):
@@ -167,7 +196,8 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L):
     psi = (1/np.pi)*np.real(psi)
     u = (1/np.pi)*np.real(u)
     w = -(1/np.pi)*np.real(w)
-    return psi, u, w
+    bq = np.real(bq)
+    return psi, u, w, bq
 
 # psi functions
 @jit(parallel=True)

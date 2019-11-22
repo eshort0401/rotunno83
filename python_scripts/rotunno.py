@@ -1,5 +1,6 @@
 # System
 import datetime
+import warnings
 
 # Performance
 from numba import jit, prange
@@ -90,11 +91,6 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
     delS = 1/sN
     delZeta = 4/zetaN
 
-    # Initialise solution arrays
-    psi = np.zeros((xiN,zetaN,tauN), dtype=np.complex64)
-    u = np.zeros((xiN,zetaN,tauN), dtype=np.complex64)
-    w = np.zeros((xiN,zetaN,tauN), dtype=np.complex64)
-
     # Initialise domains
     xi = np.linspace(-2,2,xiN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
@@ -104,21 +100,22 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
 
     print('Integrating')
     if U==0:
-        psi, u, w = integrate_qian_U0(xi,zeta,tau,s,alpha,L)
+        psi, u, w, bq = integrate_qian_U0(xi,zeta,tau,s,alpha,L)
         modes=2
     else:
-        psi, u, w = integrate_qian(xi,zeta,tau,s,alpha,U,L)
+        psi, u, w, bq = integrate_qian(xi,zeta,tau,s,alpha,U,L)
         modes=3
 
     ds = xr.Dataset({'psi':(('mode','tau','zeta','xi'),psi),
                      'u':(('mode','tau','zeta','xi'),u),
-                     'w':(('mode','tau','zeta','xi'),w)},
+                     'w':(('mode','tau','zeta','xi'),w),
+                     'bq':(('tau','zeta','xi'),bq)},
                     {'mode': np.arange(1,modes+1), 'tau': tau,
                     'zeta':zeta, 'xi':xi},
                     {'U':U, 'L':L})
 
     print('Saving')
-    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau']:
+    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau', 'bq']:
         ds[var].attrs['units'] = '-'
 
     if save:
@@ -137,6 +134,10 @@ def assign_units(ds):
     ds.u.attrs['units'] = 'm/s'
     ds.w.attrs['units'] = 'm/s'
     ds.psi.attrs['units'] = 'm^2/s'
+    try:
+        ds.bq.attrs['units'] = 'm/s^2'
+    except:
+        warnings.warn('Buoyancy not present.')
 
     return ds
 
@@ -150,7 +151,7 @@ def redimensionalise_rotunno(ds, h=500,
     # Note this is different from the paper!
     ds['u'] = ds.u * h * omega
     ds['w'] = ds.w * h * omega * (omega**2 - f**2)**(1/2)/N
-    ds['psi'] = ds.psi * h**2 * omega
+    ds['psi'] = ds.psi * h**2 * omegaprint
     if np.abs(f) < 2*omega*np.sin(np.deg2rad(30)):
         ds = ds.assign_coords(xi = ds.xi*N*h*(omega**2-f**2)**(-1/2))
     elif np.abs(f) > 2*omega*np.sin(np.deg2rad(30)):
@@ -171,6 +172,7 @@ def redimensionalise_qian(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
     ds['u'] = ds.u*Q0/(N*omega)
     ds['w'] = ds.w*Q0/(N**2)
     ds['psi'] = ds.psi*h*Q0/(N*omega)
+    ds['bq'] = ds.bq*Q0/omega
     ds.attrs['L'] = ds.attrs['L']*N*h/omega
     ds.attrs['U'] = ds.attrs['U']*N*h
     ds.attrs['Q0'] = Q0
@@ -198,7 +200,7 @@ def get_current_dt_str():
     dt=dt.replace("-", "")
     return dt
 
-def plotPsi(ds, t=0, save=False):
+def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
 
     init_fonts()
     plt.close('all')
@@ -208,45 +210,49 @@ def plotPsi(ds, t=0, save=False):
     # psi plot
     fig, ax = plt.subplots()
 
-    psiInc = np.ceil(np.max(np.abs(ds.psi))*10)/100
-    psiMax = np.ceil(np.max(np.abs(ds.psi))*10)/10
-    levels=np.arange(-psiMax,psiMax+psiInc,psiInc)
 
-    # [Xi,Zeta]=np.meshgrid(xi,zeta,indexing='ij')
+    varMin = np.min(ds[var])
+    varMax = np.max(ds[var])
+    if signed:
+        varInc = varMax/10
+        levels = np.arange(-varMax,varMax+varInc,varInc)
+    else:
+        varInc = (varMax-varMin)/10
+        levels = np.arange(varMin,varMax+varInc,varInc)
 
-    contourPlot=plt.contourf(ds.xi, ds.zeta, ds.psi.sel(tau=t, method='nearest'),
-                            levels=levels, cmap='RdBu_r')
-    plt.title('Stream function [' + ds.psi.attrs['units'] + ']')
+    contourPlot=plt.contourf(ds.xi, ds.zeta, ds[var].sel(tau=t, method='nearest'),
+                            levels=levels, cmap=cmap)
+    plt.title(var + ' [' + ds[var].attrs['units'] + ']')
     plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
     plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
     cbar = plt.colorbar(contourPlot)
-    cbar.set_label('[' + ds.psi.attrs['units'] + ']')
+    cbar.set_label('[' + ds[var].attrs['units'] + ']')
 
     if save:
-        outFile='./../figures/psi_' + get_current_dt_str() + '.png'
+        outFile='./../figures/{}_'.format(var) + get_current_dt_str() + '.png'
         fig.savefig(outFile, dpi=80, writer='imagemagick')
 
     return fig, ax, contourPlot, levels
 
-def animatePsi(ds):
+def animateCont(ds, var='psi', cmap='RdBu_r'):
 
     plt.ioff()
-    fig, ax, contourPlot, levels = plotPsi(ds)
+    fig, ax, contourPlot, levels = plotCont(ds, var=var)
 
     def update(i):
         label = 'Timestep {0}'.format(i)
-        print(label)
+        print(label, )
         # Update the line and the axes (with a new xlabel). Return a tuple of
         # "artists" that have to be redrawn for this frame.
-        contourPlot=ax.contourf(ds.xi, ds.zeta, ds.psi.isel(tau=i),
-                                levels=levels, cmap='RdBu_r')
+        contourPlot=ax.contourf(ds.xi, ds.zeta, ds[var].isel(tau=i),
+                                levels=levels, cmap=cmap)
         return contourPlot, ax
 
     anim = FuncAnimation(fig, update,
                          frames=np.arange(0, np.size(ds.tau)),
                          interval=200)
 
-    outFile='./../figures/psi_' + get_current_dt_str() + '.gif'
+    outFile='./../figures/{}_'.format(var) + get_current_dt_str() + '.gif'
     anim.save(outFile, dpi=80, writer='imagemagick')
 
 def plotVelocity(ds, t=0, save=False):
