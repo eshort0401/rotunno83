@@ -11,13 +11,14 @@ import xarray as xr
 
 from scipy.special import exp1
 
-@jit(parallel=True)
-def integrate_qian(xi,zeta,tau,s,alpha,U,L):
+# @jit(parallel=True)
+def integrate_qian(xi,zeta,tau,s,alpha,U,L,heat_right=True):
 
     psi = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
     u = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
     w = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
     bq = np.zeros((tau.size, zeta.size, xi.size), dtype=np.complex64)
+    bw = np.zeros((6, tau.size, zeta.size, xi.size), dtype=np.complex64)
 
     # Define alternative domains
     theta = calc_theta(s,alpha=alpha)
@@ -39,8 +40,12 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L):
             # Calc bq (buoyancy associated with heating)
             tauP2=np.linspace(-10*np.pi,tau[l],10**3)
             tauP = np.concatenate((tauP1,tauP2))
-            bq_ig = ((np.pi/2+np.arctan((xi[i]-U*(tau[l]-tauP))/L))
-                     *np.cos(tauP))
+            if heat_right:
+                bq_ig = ((np.pi/2+np.arctan((xi[i]-U*(tau[l]-tauP))/L))
+                         *np.cos(tauP))
+            else:
+                bq_ig = ((-np.pi/2+np.arctan((xi[i]-U*(tau[l]-tauP))/L))
+                         *np.cos(tauP))
             bq[l,:,i] = np.trapz(bq_ig,tauP)*np.exp(-zeta)
 
     # Perform numerical integration zeta>0
@@ -75,6 +80,33 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L):
                          *calc_ep0(1j*zeta[j]/U))
 
                 psi[2][l,j,i] = psi3ab+psi3c
+
+                # Calc bw1
+                bw[0][l,j,i] = np.trapz(psi1_ig*k_1/(1+U*k_1), k_1)
+
+                # Calc bw2
+                bw2b_ig = calc_bw2b(xi[i],zeta[j],tau[l],s,alpha,U,L)
+                bw2b = np.trapz(bw2b_ig, s)+(psi2ab+psi2c)/U
+                bw2c = (1/(2*U**2)*np.exp(1j*zeta[j]/U)
+                        *calc_C2(xi[i],tau[l],k0_2,U,L)
+                        *calc_exp1(1j*zeta[j]/U))
+
+                # import pdb; pdb.set_trace()
+                # Note this term contains a bit of bw3... (see Craig notes)
+                bw23_ig = calc_bw23(xi[i],zeta[j],tau[l],s,alpha,U,L)
+                bw23 = np.trapz(bw23_ig, s)
+                bw[1][l,j,i] = bw23
+                bw[2][l,j,i] = bw2b
+                bw[3][l,j,i] = bw2c
+                #bw2b+bw23+bw2c
+
+                # Calc bw3
+                bw3b_ig = calc_bw3b(xi[i],zeta[j],tau[l],s,alpha,U,L)
+                bw3b = np.trapz(bw3b_ig, s)
+                bw3c = (-1/2*calc_C3(xi[i],tau[l],k0_3,U,L)
+                        *calc_exp1(-1j*zeta[j]/U))
+                bw[4][l,j,i] = bw3b#bw3c+bw3b
+                bw[5][l,j,i] = bw3c
 
                 # Calc u1
                 u1_ig = calc_u1(xi[i],zeta[j],tau[l],k_1,U,L)
@@ -135,15 +167,17 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L):
     u = (1/np.pi)*np.real(u)
     w = -(1/np.pi)*np.real(w)
     bq = np.real(bq)
-    return psi, u, w, bq
+    bw = (1/np.pi)*np.real(bw)
+    return psi, u, w, bq, bw
 
 @jit(parallel=True)
-def integrate_qian_U0(xi,zeta,tau,s,alpha,L):
+def integrate_qian_U0(xi,zeta,tau,s,alpha,L,heat_right=True):
 
     psi = np.zeros((2, tau.size, zeta.size, xi.size), dtype=np.complex64)
     u = np.zeros((2, tau.size, zeta.size, xi.size), dtype=np.complex64)
     w = np.zeros((2, tau.size, zeta.size, xi.size), dtype=np.complex64)
     bq = np.zeros((tau.size, zeta.size, xi.size), dtype=np.complex64)
+    bw = np.zeros((2, tau.size, zeta.size, xi.size), dtype=np.complex64)
 
     # Define alternative domains
     theta = calc_theta(s,alpha=alpha)
@@ -152,7 +186,7 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L):
     k_3 = calc_k_3(theta,1/(2*np.pi))
     k0_3 = calc_k_3(0,1/(2*np.pi))
 
-    # Get wavenumers less than 2*pi
+    # Get wavenumers less than 2*pi/
     k_2 = calc_k_2(theta,1/(2*np.pi))
     k0_2 = calc_k_2(0,1/(2*np.pi))
 
@@ -168,8 +202,12 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L):
             # Calc bq (buoyancy associated with heating)
             tauP2=np.linspace(-10*np.pi,tau[l],10**3)
             tauP = np.concatenate((tauP1,tauP2))
-            bq_ig = ((np.pi/2+np.arctan(xi[i]/L))
-                     *np.cos(tauP))
+            if heat_right:
+                bq_ig = ((np.pi/2+np.arctan(xi[i]/L))
+                         *np.cos(tauP))
+            else:
+                bq_ig = ((-np.pi/2+np.arctan(xi[i]/L))
+                         *np.cos(tauP))
             bq[l,:,i] = np.trapz(bq_ig,tauP)*np.exp(-zeta)
 
     # Perform numerical integration zeta>0
@@ -193,11 +231,48 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L):
                 w[0][l,j,i] = np.trapz(psi1_ig*1j*k_1,k_1)
                 w[1][l,j,i] = np.trapz(psi2_ig*1j*k_1,k_1)
 
+                # Calc bw
+                bw[0][l,j,i] = np.trapz(psi1_ig*k_1, k_1)
+                bw[1][l,j,i] = np.trapz(-psi2_ig*k_1, k_1)
+
     psi = (1/np.pi)*np.real(psi)
     u = (1/np.pi)*np.real(u)
     w = -(1/np.pi)*np.real(w)
     bq = np.real(bq)
-    return psi, u, w, bq
+    bw = (1/np.pi)*np.real(bw)
+
+    return psi, u, w, bq, bw
+
+# bw functions
+@jit(parallel=True)
+def calc_bw2b(xi,zeta,tau,s,alpha,U,L):
+    theta = calc_theta(s,alpha)
+    k = calc_k_2(theta,U)
+    k0 = calc_k_2(0,U)
+    bw2b = (1/(2*U**2)*np.exp(1j*zeta/U)
+           *(calc_C2(xi,tau,k,U,L)-calc_C2(xi,tau,k0,U,L))
+           *np.exp(-1j*zeta/(U*np.sin(theta)))/np.tan(theta)
+           *alpha*s**(alpha-1)*np.pi/2)
+    return bw2b
+
+@jit(parallel=True)
+def calc_bw23(xi,zeta,tau,s,alpha,U,L):
+    theta = calc_theta(s,alpha)
+    k2 = calc_k_2(theta,U)
+    k3 = calc_k_3(theta,U)
+    bw23 = (1/2*np.exp(-zeta)/np.tan(theta)
+            *(-calc_C2(xi,tau,k2,U,L)/U**2+calc_C3(xi,tau,k3,U,L))
+            *alpha*s**(alpha-1)*np.pi/2)
+    return bw23
+
+def calc_bw3b(xi,zeta,tau,s,alpha,U,L):
+    theta = calc_theta(s,alpha)
+    k = calc_k_3(theta,U)
+    k0 = calc_k_3(0,U)
+    bw3b = (-1/2*(calc_C3(xi,tau,k,U,L)-calc_C3(xi,tau,k0,U,L))
+            *np.exp(1j*zeta/(U*np.sin(theta)))/np.tan(theta)
+            *alpha*s**(alpha-1)*np.pi/2)
+    return bw3b
 
 # psi functions
 @jit(parallel=True)

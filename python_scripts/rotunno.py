@@ -82,7 +82,7 @@ def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
     return ds
 
 def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
-               U=0.625, L=0.1, save=True):
+               U=0.625, L=0.1, heat_right=True, save=True):
 
     print('Initialising')
 
@@ -92,30 +92,33 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
     delZeta = 4/zetaN
 
     # Initialise domains
-    xi = np.linspace(-2,2,xiN, dtype=np.float64)
+    xi = np.linspace(-6,6,xiN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
-    zeta = np.linspace(0,4,zetaN, dtype=np.float64)
+    zeta = np.linspace(0,10,zetaN, dtype=np.float64)
     tau = np.arange(0,2*np.pi,delTau, dtype=np.float64)
     s = np.arange(delS,1,delS, dtype=np.float64)
 
     print('Integrating')
     if U==0:
-        psi, u, w, bq = integrate_qian_U0(xi,zeta,tau,s,alpha,L)
+        psi, u, w, bq, bw = integrate_qian_U0(xi,zeta,tau,s,alpha,L,
+                                              heat_right=heat_right)
         modes=2
     else:
-        psi, u, w, bq = integrate_qian(xi,zeta,tau,s,alpha,U,L)
+        psi, u, w, bq, bw = integrate_qian(xi,zeta,tau,s,alpha,U,L,
+                                           heat_right=heat_right)
         modes=3
 
     ds = xr.Dataset({'psi':(('mode','tau','zeta','xi'),psi),
                      'u':(('mode','tau','zeta','xi'),u),
                      'w':(('mode','tau','zeta','xi'),w),
-                     'bq':(('tau','zeta','xi'),bq)},
+                     'bq':(('tau','zeta','xi'),bq),
+                     'bw':(('submode','tau','zeta','xi'),bw)},
                     {'mode': np.arange(1,modes+1), 'tau': tau,
-                    'zeta':zeta, 'xi':xi},
+                    'zeta':zeta, 'xi':xi, 'submode':np.arange(1,7)},
                     {'U':U, 'L':L})
 
     print('Saving')
-    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau', 'bq']:
+    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau', 'bq', 'bw']:
         ds[var].attrs['units'] = '-'
 
     if save:
@@ -136,6 +139,7 @@ def assign_units(ds):
     ds.psi.attrs['units'] = 'm^2/s'
     try:
         ds.bq.attrs['units'] = 'm/s^2'
+        ds.bw.attrs['units'] = 'm/s^2'
     except:
         warnings.warn('Buoyancy not present.')
 
@@ -151,7 +155,7 @@ def redimensionalise_rotunno(ds, h=500,
     # Note this is different from the paper!
     ds['u'] = ds.u * h * omega
     ds['w'] = ds.w * h * omega * (omega**2 - f**2)**(1/2)/N
-    ds['psi'] = ds.psi * h**2 * omegaprint
+    ds['psi'] = ds.psi * h**2 * omega
     if np.abs(f) < 2*omega*np.sin(np.deg2rad(30)):
         ds = ds.assign_coords(xi = ds.xi*N*h*(omega**2-f**2)**(-1/2))
     elif np.abs(f) > 2*omega*np.sin(np.deg2rad(30)):
@@ -173,6 +177,7 @@ def redimensionalise_qian(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
     ds['w'] = ds.w*Q0/(N**2)
     ds['psi'] = ds.psi*h*Q0/(N*omega)
     ds['bq'] = ds.bq*Q0/omega
+    ds['bw'] = ds.bw*Q0/omega
     ds.attrs['L'] = ds.attrs['L']*N*h/omega
     ds.attrs['U'] = ds.attrs['U']*N*h
     ds.attrs['Q0'] = Q0
@@ -205,11 +210,10 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
     init_fonts()
     plt.close('all')
 
-    print('Plotting stream function.')
+    print('Plotting {}.'.format(var))
 
     # psi plot
     fig, ax = plt.subplots()
-
 
     varMin = np.min(ds[var])
     varMax = np.max(ds[var])
@@ -220,7 +224,7 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
         varInc = (varMax-varMin)/10
         levels = np.arange(varMin,varMax+varInc,varInc)
 
-    contourPlot=plt.contourf(ds.xi, ds.zeta, ds[var].sel(tau=t, method='nearest'),
+    contourPlot=plt.contourf(ds.xi, ds.zeta, ds[var].isel(tau=t),
                             levels=levels, cmap=cmap)
     plt.title(var + ' [' + ds[var].attrs['units'] + ']')
     plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
