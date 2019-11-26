@@ -42,8 +42,6 @@ and so
 \begin{equation}
 w=\tilde{w}h\omega(f^2-\omega^2)^\frac{1}{2}N^{-1}
 \end{equation}
-\item
-Note my (and Rotunno's) expressions for Fourier transforms are missing a factor of $\frac{1}{\pi}$, which explains the additional missing factor of $\pi$ when converting from $Q_0$ in \citet{qian09} to $\tilde{A}$! Now fixed in code. Rotunno code results now match my Qian code results. Not $100\%$ whether error is in Qian or Rotunno's expressions... Not sure whether the $\frac{1}{\pi}$ factor in Qian is wrong, or the same factor is missing in Rotunno...
 \end{enumerate}
 
 \section{Mid-Latitude Case}
@@ -85,17 +83,18 @@ The properties of Green's function's then give the solution given by equation (2
 \subsection{Deriving Equation (37)}
 Equation (36) gives
 \begin{align*}
-\frac{\partial ^2 \tilde{\psi}}{\partial \xi^2} - \frac{\partial ^2 \tilde{\psi}}{\partial \zeta^2} = -\beta \frac{\partial^2 \tilde{Q}}{\partial \xi^2}.
+\frac{\partial ^2 \tilde{\psi}}{\partial \xi^2} - \frac{\partial ^2 \tilde{\psi}}{\partial \zeta^2} = -\beta \frac{\partial \tilde{Q}}{\partial \xi}.
 \end{align*}
 Take Fourier transform to get
 \begin{align*}
-& \phantom{=} -k^2 \widehat{\tilde{\psi}} - \frac{\partial ^2 \widehat{\tilde{\psi}}}{\partial \zeta^2} = -\beta \frac{\partial^2 \widehat{\tilde{Q}}}{\partial \xi^2} \\
-&= k^2 \widehat{\tilde{\psi}} + \frac{\partial ^2 \widehat{\tilde{\psi}}}{\partial \zeta^2} = \beta \frac{\partial^2 \widehat{\tilde{Q}}}{\partial \xi^2}.
+& \phantom{=} -k^2 \widehat{\tilde{\psi}} - \frac{\partial ^2 \widehat{\tilde{\psi}}}{\partial \zeta^2} = -\beta \frac{\partial \widehat{\tilde{Q}}}{\partial \xi} \\
+&= k^2 \widehat{\tilde{\psi}} + \frac{\partial ^2 \widehat{\tilde{\psi}}}{\partial \zeta^2} = \beta \frac{\partial \widehat{\tilde{Q}}}{\partial \xi}.
 \end{align*}
 Boundary condition becomes $\left(ik\right)\widehat{\tilde{\psi}}(k,0)=0$, and so $\widehat{\tilde{\psi}}(k,0)=0$ (using the Fourier transform rule for derivatives.) Solve for Green's Function
-\begin{align*}
+\begin{align}
 &\phantom{=} k^2 G + G_{\zeta\zeta} = \delta\left(\zeta-\zeta'\right).
-\end{align*}
+\label{Eq:Greens}
+\end{align}
 General solution setting RHS to zero is $G=B_1 e^{i k\zeta} + B_2 e^{-ik\zeta}$. For $\zeta < \zeta'$ the boundary condition gives
 \begin{align*}
 0=B_1+B_2 & \Rightarrow B_2 = -B_1 \\
@@ -111,9 +110,9 @@ Recall for gravity waves, energy propagates with the group velocity in the \text
 Now, continuity requires that 
 \begin{align*}
 \lim_{\zeta\to\zeta'^+} G = \lim_{\zeta\to\zeta'^-} G \\
-\lim_{\zeta\to\zeta'^+} G_\zeta - \lim_{\zeta\to\zeta'^-} G_\zeta = 1. 
+\lim_{\zeta\to\zeta'^+} G_\zeta - \lim_{\zeta\to\zeta'^-} G_\zeta = 1 
 \end{align*}
-Thus 
+where the second condition follows from integrating (\ref{Eq:Greens}) from $\zeta'-\epsilon$ to $\zeta'+\epsilon$ and taking the limit as $\epsilon\to 0$, noting that $G$ is continuous at $\zeta'$ so the $k^2 G$ integral goes to zero in the limit.  Thus 
 \begin{align*}
 &\phantom{\Rightarrow} Be^{-i\sgn(k)k\zeta'} = A\sin(k\zeta') \\
 &\phantom{\Rightarrow} -i\sgn(k)k Be^{-i\sgn(k)k\zeta'} - Ak\cos(k\zeta') = 1 \\
@@ -156,13 +155,16 @@ Now, starting from the corrected form of equation 37 we have,
 &\phantom{=} -\beta \mathcal{F}^{-1}\left[ \frac{1}{k}e^{-i\sgn(k) k \zeta} \int_0^\zeta \mathcal{F}\left(\frac{\partial \tilde{Q}}{\partial \xi}\right) \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty \mathcal{F}\left(\frac{\partial \tilde{Q}}{\partial \xi}\right) e^{-i\sgn(k)k\zeta'} d\zeta' \right]
 \label{Eq:start} \\
 &=-\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{-\infty}^{0} e^{ik\xi} \left[\frac{1}{k}e^{i k \zeta} \int_0^\zeta  e^{\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{\xi_0 k} e^{-\zeta} e^{ik\zeta'} d\zeta' \right] dk \\
-&\phantom{=} -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{-\xi_0 k} e^{-\zeta} e^{-i k\zeta'} d\zeta' \right] dk \\
-&= -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{-ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{-\xi_0 k} e^{-\zeta} e^{-ik\zeta'} d\zeta' \right] dk \\
-&\phantom{=} -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\xi_0 k} e^{-\zeta} e^{-i k\zeta'} d\zeta' \right] dk \\
+&\phantom{=} -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta'} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{-\xi_0 k} e^{-\zeta'} e^{-i k\zeta'} d\zeta' \right] dk \\
+&= -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{-ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta'} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty  e^{-\xi_0 k} e^{-\zeta'} e^{-ik\zeta'} d\zeta' \right] dk \\
+&\phantom{=} -\frac{\beta}{2} \tilde{A} i e^{-i\tau} \int_{0}^{\infty} e^{ik\xi} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta  e^{-\xi_0 k} e^{-\zeta'} \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\xi_0 k} e^{-\zeta'} e^{-i k\zeta'} d\zeta' \right] dk \\
 &=-\beta i e^{-i\tau} \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta e^{-\zeta'}  \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\zeta'} e^{-ik\zeta'} d\zeta' \right] dk \label{Eq:rotNotes} \\ 
 &=-\beta \int_{0}^{\infty} \cos\left(k\xi \right) \left[e^{-i k \zeta} \int_0^\zeta \left(\frac{\partial \tilde{Q}}{\partial \xi}\right) \sin k\zeta' d\zeta' + \sin k \zeta \int_\zeta^\infty \left(\frac{\partial \tilde{Q}}{\partial \xi}\right) e^{-ik\zeta'} d\zeta' \right] \frac{dk}{k}. \label{Eq:rotNotes2}
 \end{align}
-Note (\ref{Eq:rotNotes2}) matches what's in Rotunno's notes. From (\ref{Eq:rotNotes}) we have
+Note (\ref{Eq:rotNotes2}) matches what's in Rotunno's notes. Before integrating $\zeta'$, note that 
+\begin{equation}
+\frac{\partial}{\partial \zeta'} \left(-\frac{e^{-\zeta'}\left(\sin(k\zeta')+k\cos(k \zeta')\right) }{k^2+1} \right) = \sin(k\zeta')e^{-\zeta'}
+\end{equation} From (\ref{Eq:rotNotes}) we have
 \begin{align*}
 &\phantom{=} -\beta i e^{-i\tau} \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \left[\frac{1}{k}e^{-i k \zeta} \int_0^\zeta e^{-\zeta'}  \sin k\zeta' d\zeta' + \frac{1}{k}\sin k \zeta \int_\zeta^\infty e^{-\zeta'} e^{-ik\zeta'} d\zeta' \right] dk \\ 
 & = -\beta \tilde{A} \int_{0}^{\infty} \cos\left(k\xi \right) e^{-\xi_0 k} \left[\frac{1}{k} i e^{-i\tau} e^{-i k \zeta} \left(-\frac{e^{-\zeta}\left(\sin\left(k\zeta\right) + k\cos\left(k\zeta\right)\right)}{k^2+1} + \frac{k}{k^2+1} \right) \right. \\ &\phantom{=} \left. + i e^{-i\tau} \frac{1}{k}\sin k \zeta \left( \frac{1-ik}{k^2+1} e^{\left(-i k - 1\right)\zeta} \right) \right] dk
@@ -269,6 +271,6 @@ with $A \pi$ the supremum of $H$ at the surface, and it taking 12 hours to go fr
 \tilde{A} = \frac{g}{2 \pi \theta_0}\frac{\theta_M - \theta_m}{12\cdot 60\cdot 60} h^{-1} \omega ^{-3}. 
 \end{align*}
 
-\bibliography{../../Bibliography/ewansbibli.bib}
+\bibliography{../../bibliography/ewansbibli.bib}
 
 \end{document}

@@ -41,7 +41,7 @@ def integrate_case_two(xi,zeta,tau,k,xi0,beta,Atilde):
                 u[l,j,i] = np.trapz(u_integrand,k)
                 w[l,j,i] = np.trapz(w_integrand,k)
     # Scale
-    psi = -(1/np.pi)*beta*Atilde*psi
-    u = -(1/np.pi)*beta*Atilde*u
-    w = -(1/np.pi)*beta*Atilde*w
+    psi = -beta*Atilde*psi
+    u = -beta*Atilde*u
+    w = -beta*Atilde*w
     return psi, u, w

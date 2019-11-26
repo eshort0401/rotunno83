@@ -2,23 +2,18 @@ This is BibTeX, Version 0.99d (TeX Live 2017/Debian)
 Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
 The top-level auxiliary file: rotunno83_notes.aux
 The style file: agsm.bst
-Database file #1: ../../Bibliography/ewansbibli.bib.bib
-I was expecting a `,' or a `}'---line 784 of file ../../Bibliography/ewansbibli.bib.bib
- :   
- :   doi={10.1201/9781315371412}
-(Error may have been on previous line)
-I'm skipping whatever remains of this entry
+Database file #1: ../../bibliography/ewansbibli.bib.bib
 You've used 3 entries,
             2909 wiz_defined-function locations,
-            663 strings with 5246 characters,
-and the built_in function-call counts, 7308 in all, are:
-= -- 1129
+            663 strings with 5249 characters,
+and the built_in function-call counts, 7318 in all, are:
+= -- 1132
 > -- 95
 < -- 0
 + -- 496
 - -- 28
-* -- 594
-:= -- 1566
+* -- 595
+:= -- 1567
 add.period$ -- 3
 call.type$ -- 3
 change.case$ -- 41
@@ -39,14 +34,13 @@ purify$ -- 45
 quote$ -- 0
 skip$ -- 37
 stack$ -- 0
-substring$ -- 1548
+substring$ -- 1552
 swap$ -- 7
 text.length$ -- 42
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 10
 warning$ -- 0
-while$ -- 66
+while$ -- 67
 width$ -- 0
 write$ -- 39
-(There was 1 error message)

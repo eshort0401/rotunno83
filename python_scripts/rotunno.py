@@ -19,15 +19,15 @@ from qian_helpers import integrate_qian, integrate_qian_U0
 from qian_helpers import calc_theta, calc_k_2, calc_k_3
 from rotunno_helpers import integrate_case_two
 
-def calc_rotunno_parameters(theta0=300, theta1=350, delTheta=6, latitude=-10,
-                            tropHeight=16*10**3, h=500):
+def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
+                            latitude=-10, h=500):
 
     # Define constants
     omega = 2*np.pi/(24*3600)
     g = 9.80665
     # Calculate nondimensional model parameters from inputs
     f = 2.0*omega*np.sin(latitude * np.pi / 180.0)
-    N = np.sqrt((g/theta0)*(theta1-theta0)/tropHeight) # Brunt Vaisala Frequency
+    # N = np.sqrt((g/theta0)*(theta1-theta0)/tropHeight) # Brunt Vaisala Frequency
     if np.abs(latitude) < 30:
         beta = omega**2/(N*np.sqrt(omega**2-f**2))
     else:
@@ -50,8 +50,8 @@ def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
     w = np.zeros((xiN,zetaN,tauN))
 
     # Initialise domains
-    xi = np.linspace(-2,2,xiN)
-    zeta = np.linspace(0,4,zetaN)
+    xi = np.linspace(-3,3,xiN)
+    zeta = np.linspace(0,6,zetaN)
     tau = np.arange(0,2*np.pi,delTau)
 
     delS=1/kN
@@ -92,9 +92,9 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
     delZeta = 4/zetaN
 
     # Initialise domains
-    xi = np.linspace(-6,6,xiN, dtype=np.float64)
+    xi = np.linspace(-3,3,xiN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
-    zeta = np.linspace(0,10,zetaN, dtype=np.float64)
+    zeta = np.linspace(0,6,zetaN, dtype=np.float64)
     tau = np.arange(0,2*np.pi,delTau, dtype=np.float64)
     s = np.arange(delS,1,delS, dtype=np.float64)
 
@@ -112,9 +112,9 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
                      'u':(('mode','tau','zeta','xi'),u),
                      'w':(('mode','tau','zeta','xi'),w),
                      'bq':(('tau','zeta','xi'),bq),
-                     'bw':(('submode','tau','zeta','xi'),bw)},
+                     'bw':(('mode','tau','zeta','xi'),bw)},
                     {'mode': np.arange(1,modes+1), 'tau': tau,
-                    'zeta':zeta, 'xi':xi, 'submode':np.arange(1,7)},
+                    'zeta':zeta, 'xi':xi},
                     {'U':U, 'L':L})
 
     print('Saving')
@@ -224,31 +224,41 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
         varInc = (varMax-varMin)/10
         levels = np.arange(varMin,varMax+varInc,varInc)
 
-    contourPlot=plt.contourf(ds.xi, ds.zeta, ds[var].isel(tau=t),
+    if ds.xi.attrs['units'] == 'm':
+        x = ds.xi/1000
+        z = ds.zeta/1000
+        plt.xlabel('Distance [km]')
+        plt.ylabel('Height [km]')
+    else:
+        x = ds.xi
+        z = ds.zeta
+        plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
+        plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
+
+    contourPlot=plt.contourf(x, z, ds[var].isel(tau=t),
                             levels=levels, cmap=cmap)
-    plt.title(var + ' [' + ds[var].attrs['units'] + ']')
-    plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
-    plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
+
     cbar = plt.colorbar(contourPlot)
     cbar.set_label('[' + ds[var].attrs['units'] + ']')
+    plt.title(var + ' [' + ds[var].attrs['units'] + ']')
 
     if save:
         outFile='./../figures/{}_'.format(var) + get_current_dt_str() + '.png'
         fig.savefig(outFile, dpi=80, writer='imagemagick')
 
-    return fig, ax, contourPlot, levels
+    return fig, ax, contourPlot, levels, x, z
 
 def animateCont(ds, var='psi', cmap='RdBu_r'):
 
     plt.ioff()
-    fig, ax, contourPlot, levels = plotCont(ds, var=var)
+    fig, ax, contourPlot, levels, x, z = plotCont(ds, var=var)
 
     def update(i):
         label = 'Timestep {0}'.format(i)
         print(label, )
         # Update the line and the axes (with a new xlabel). Return a tuple of
         # "artists" that have to be redrawn for this frame.
-        contourPlot=ax.contourf(ds.xi, ds.zeta, ds[var].isel(tau=i),
+        contourPlot=ax.contourf(x, z, ds[var].isel(tau=i),
                                 levels=levels, cmap=cmap)
         return contourPlot, ax
 
@@ -269,11 +279,23 @@ def plotVelocity(ds, t=0, save=False):
     fig, ax = plt.subplots()
 
     ds['speed']=(ds.u**2+ds.w**2)**(1/2)
-    speedMax=np.ceil(np.amax(ds.speed)/2)*2
-    speedMin=0
-    levels=np.arange(speedMin,speedMax+2,2)
+    speedMax=np.ceil(np.amax(ds.speed))
+    speedInc=speedMax/20
+    levels=np.arange(0,speedMax,speedInc)
 
-    contourPlot=ax.contourf(ds.xi, ds.zeta, ds.speed.isel(tau=t),
+    if ds.xi.attrs['units'] == 'm':
+        x = ds.xi/1000
+        z = ds.zeta/1000
+        plt.xlabel('Distance [km]')
+        plt.ylabel('Height [km]')
+    else:
+        x = ds.xi
+        z = ds.zeta
+        plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
+        plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
+
+
+    contourPlot=ax.contourf(x, z, ds.speed.isel(tau=t),
                             cmap='Reds')
 
     skip=int(np.floor(np.size(ds.xi)/12))
@@ -285,14 +307,12 @@ def plotVelocity(ds, t=0, save=False):
     dxi=ds.xi[1]-ds.xi[0]
     scale=(speedMaxQ/(skip*dxi)).values
 
-    ax.quiver(ds.xi[sQ::skip], ds.zeta[sQ::skip],
+    ax.quiver(x[sQ::skip], z[sQ::skip],
               ds.u.isel(tau=t)[sQ::skip,sQ::skip],
               ds.w.isel(tau=t)[sQ::skip,sQ::skip],
               units='xy', angles='xy', scale=scale)
 
     plt.title('Velocity [' + ds.u.attrs['units'] + ']')
-    plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
-    plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
     cbar=plt.colorbar(contourPlot)
     cbar.set_label('Speed  [' + ds.u.attrs['units'] + ']')
 
@@ -300,22 +320,22 @@ def plotVelocity(ds, t=0, save=False):
         outFile='./../figures/velocity_' + get_current_dt_str() + '.png'
         plt.savefig(outFile, dpi=80, writer='imagemagick')
 
-    return ds, fig, ax, contourPlot, levels, sQ, skip, scale
+    return ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z
 
 def animateVelocity(ds):
 
     plt.ioff()
     init_fonts()
 
-    ds, fig, ax, contourPlot, levels, sQ, skip, scale = plotVelocity(ds)
+    ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z = plotVelocity(ds,t=0)
 
     def update(i):
         label = 'Timestep {0}'.format(i)
         print(label)
         ax.collections = []
-        contourPlot=ax.contourf(ds.xi, ds.zeta, ds.speed.isel(tau=i),
+        contourPlot=ax.contourf(x, z, ds.speed.isel(tau=i),
                                 cmap='Reds')
-        ax.quiver(ds.xi[sQ::skip], ds.zeta[sQ::skip],
+        ax.quiver(x[sQ::skip], z[sQ::skip],
                   ds.u.isel(tau=i)[sQ::skip,sQ::skip],
                   ds.w.isel(tau=i)[sQ::skip,sQ::skip],
                   units='xy', angles='xy', scale=scale)

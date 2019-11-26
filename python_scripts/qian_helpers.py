@@ -18,7 +18,7 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L,heat_right=True):
     u = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
     w = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
     bq = np.zeros((tau.size, zeta.size, xi.size), dtype=np.complex64)
-    bw = np.zeros((6, tau.size, zeta.size, xi.size), dtype=np.complex64)
+    bw = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)
 
     # Define alternative domains
     theta = calc_theta(s,alpha=alpha)
@@ -95,18 +95,14 @@ def integrate_qian(xi,zeta,tau,s,alpha,U,L,heat_right=True):
                 # Note this term contains a bit of bw3... (see Craig notes)
                 bw23_ig = calc_bw23(xi[i],zeta[j],tau[l],s,alpha,U,L)
                 bw23 = np.trapz(bw23_ig, s)
-                bw[1][l,j,i] = bw23
-                bw[2][l,j,i] = bw2b
-                bw[3][l,j,i] = bw2c
-                #bw2b+bw23+bw2c
+                bw[1][l,j,i] = bw23+bw2b+bw2c
 
                 # Calc bw3
                 bw3b_ig = calc_bw3b(xi[i],zeta[j],tau[l],s,alpha,U,L)
                 bw3b = np.trapz(bw3b_ig, s)
                 bw3c = (-1/2*calc_C3(xi[i],tau[l],k0_3,U,L)
                         *calc_exp1(-1j*zeta[j]/U))
-                bw[4][l,j,i] = bw3b#bw3c+bw3b
-                bw[5][l,j,i] = bw3c
+                bw[2][l,j,i] = bw3b+bw3c
 
                 # Calc u1
                 u1_ig = calc_u1(xi[i],zeta[j],tau[l],k_1,U,L)
@@ -240,6 +236,12 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L,heat_right=True):
     w = -(1/np.pi)*np.real(w)
     bq = np.real(bq)
     bw = (1/np.pi)*np.real(bw)
+
+    # psi = np.real(psi)
+    # u = np.real(u)
+    # w = np.real(w)
+    # bw = np.real(bw)
+    # bq = np.real(bq)
 
     return psi, u, w, bq, bw
 
