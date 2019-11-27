@@ -246,7 +246,7 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L,heat_right=True):
     return psi, u, w, bq, bw
 
 # bw functions
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_bw2b(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s,alpha)
     k = calc_k_2(theta,U)
@@ -257,7 +257,7 @@ def calc_bw2b(xi,zeta,tau,s,alpha,U,L):
            *alpha*s**(alpha-1)*np.pi/2)
     return bw2b
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_bw23(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s,alpha)
     k2 = calc_k_2(theta,U)
@@ -267,6 +267,7 @@ def calc_bw23(xi,zeta,tau,s,alpha,U,L):
             *alpha*s**(alpha-1)*np.pi/2)
     return bw23
 
+@jit(parallel=True, nopython=True)
 def calc_bw3b(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s,alpha)
     k = calc_k_3(theta,U)
@@ -277,7 +278,7 @@ def calc_bw3b(xi,zeta,tau,s,alpha,U,L):
     return bw3b
 
 # psi functions
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_psi1(xi,zeta,tau,k,U,L):
     m=k/(1+k*U)
     psi1 = (-(1/2)*np.exp(-k*L)/(k**2+(1+k*U)**2)
@@ -285,7 +286,7 @@ def calc_psi1(xi,zeta,tau,k,U,L):
             *np.exp(1j*(k*xi+tau)))
     return psi1
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_psi2_U0(xi,zeta,tau,k,L):
     m=k
     psi2 = (-(1/2)*np.exp(-k*L)/(k**2+1)
@@ -293,7 +294,7 @@ def calc_psi2_U0(xi,zeta,tau,k,L):
             *np.exp(1j*(k*xi-tau)))
     return psi2
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_psi2a(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s,alpha)
     k = calc_k_2(theta,U)
@@ -302,7 +303,7 @@ def calc_psi2a(xi,zeta,tau,s,alpha,U,L):
              *alpha*s**(alpha-1)*np.pi/2)
     return psi2a
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_psi2b(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha=alpha)
     k = calc_k_2(theta,U)
@@ -313,7 +314,7 @@ def calc_psi2b(xi,zeta,tau,s,alpha,U,L):
              *alpha*s**(alpha-1)*np.pi/2)
     return psi2b
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_psi3a(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha)
     k = calc_k_3(theta,U)
@@ -321,7 +322,7 @@ def calc_psi3a(xi,zeta,tau,s,alpha,U,L):
              *alpha*s**(alpha-1)*np.pi/2)
     return psi3a
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_psi3b(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha=alpha)
     k = calc_k_3(theta,U)
@@ -332,7 +333,7 @@ def calc_psi3b(xi,zeta,tau,s,alpha,U,L):
     return psi3b
 
 # w functions
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_w2b(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha=alpha)
     k = calc_k_2(theta,U)
@@ -343,7 +344,7 @@ def calc_w2b(xi,zeta,tau,s,alpha,U,L):
              *alpha*s**(alpha-1)*np.pi/2)
     return w2b
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_w3b(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha=alpha)
     k = calc_k_3(theta,U)
@@ -354,7 +355,7 @@ def calc_w3b(xi,zeta,tau,s,alpha,U,L):
     return w3b
 
 # u functions
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_u1(xi,zeta,tau,k,U,L):
     m=k/(1+k*U)
     u1 = (-(1/2)*np.exp(-k*L)/(k**2+(1+k*U)**2)
@@ -362,7 +363,7 @@ def calc_u1(xi,zeta,tau,k,U,L):
           *np.exp(1j*(k*xi+tau)))
     return u1
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_u2_U0(xi,zeta,tau,k,L):
     m=k
     u2 = (-(1/2)*np.exp(-k*L)/(k**2+1)
@@ -370,7 +371,7 @@ def calc_u2_U0(xi,zeta,tau,k,L):
           *np.exp(1j*(k*xi-tau)))
     return u2
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_u2a(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s,alpha=alpha)
     k = calc_k_2(theta,U)
@@ -378,7 +379,7 @@ def calc_u2a(xi,zeta,tau,s,alpha,U,L):
            *alpha*s**(alpha-1)*np.pi/2)
     return u2a
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_u2b(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha=alpha)
     k = calc_k_2(theta,U)
@@ -393,7 +394,7 @@ def calc_u2b(xi,zeta,tau,s,alpha,U,L):
            *alpha*s**(alpha-1)*np.pi/2)
     return u2b
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_u2b_z0(xi,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha=alpha)
     k = calc_k_2(theta,U)
@@ -403,7 +404,7 @@ def calc_u2b_z0(xi,tau,s,alpha,U,L):
      +1j/(2*U**2)*calc_C2(xi,tau,k,U,L)*np.cos(theta)/np.sin(theta)
      *alpha*s**(alpha-1)*np.pi/2)
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_u3a(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha)
     k = calc_k_3(theta,U)
@@ -411,7 +412,7 @@ def calc_u3a(xi,zeta,tau,s,alpha,U,L):
            *np.exp(-zeta)*np.cos(theta)*alpha*s**(alpha-1)*np.pi/2)
     return u3a
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_u3b(xi,zeta,tau,s,alpha,U,L):
     theta = calc_theta(s, alpha=alpha)
     k = calc_k_3(theta,U)
@@ -422,42 +423,42 @@ def calc_u3b(xi,zeta,tau,s,alpha,U,L):
     return u3b
 
 # Miscellaneous functions
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_C2(xi,tau,k,U,L):
     C2 = np.exp(-k*L)*np.exp(1j*(k*xi-tau))/(k**2+(U*k-1)**2)
     return C2
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_C3(xi,tau,k,U,L):
     C3 = k**2*np.exp(-k*L)*np.exp(1j*(k*xi-tau))/(k**2+(U*k-1)**2)
     return C3
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_C2x(xi,tau,k,U,L):
     C2x = 1j*k*np.exp(-k*L)*np.exp(1j*(k*xi-tau))/(k**2+(U*k-1)**2)
     return C2x
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_C2_z0(xi,tau,k,U,L):
     C2x = 1j*k*np.exp(-k*L)*np.exp(1j*(k*xi-tau))/(k**2+(U*k-1)**2)
     return C2_z0
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_C3x(xi,tau,k,U,L):
     C3x = 1j*k**3*np.exp(-k*L)*np.exp(1j*(k*xi-tau))/(k**2+(U*k-1)**2)
     return C3x
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_theta(s,alpha=3):
     theta = (np.pi/2)*s**alpha
     return theta
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_k_3(theta,U):
     k = 1/(U*(1-np.sin(theta)))
     return k
 
-@jit(parallel=True)
+@jit(parallel=True, nopython=True)
 def calc_k_2(theta,U):
     k = (1-np.sin(theta))/U
     return k

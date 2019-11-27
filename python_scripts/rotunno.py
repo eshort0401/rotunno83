@@ -17,7 +17,7 @@ import xarray as xr
 # Helpers
 from qian_helpers import integrate_qian, integrate_qian_U0
 from qian_helpers import calc_theta, calc_k_2, calc_k_3
-from rotunno_helpers import integrate_case_two
+from rotunno_helpers import integrate_case_two, integrate_case_one
 
 def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
                             latitude=-10, h=500):
@@ -35,6 +35,46 @@ def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
     Atilde = .5*delTheta*(g/(np.pi*theta0))*h**(-1)*omega**(-3)/(12*60*60)
 
     return beta, Atilde, f, h
+
+def solve_rotunno_case_one(xiN=41, zetaN=41, tauN=32, xipN=1000, zetapN=1000,
+                           xi0=0.2, beta=7.27*10**(-3), Atilde=10**3):
+
+    print('Initialising')
+
+    # Time interval
+    delTau = 2*np.pi/tauN
+
+    # Initialise solution arrays
+    psi = np.zeros((xiN,zetaN,tauN))
+    u = np.zeros((xiN,zetaN,tauN))
+    w = np.zeros((xiN,zetaN,tauN))
+
+    # Initialise domains
+    xi = np.linspace(-3,3,xiN)
+    zeta = np.linspace(0,6,zetaN)
+
+    xip = np.linspace(-10,10,xipN)
+    zetap = np.linspace(0,20,zetapN)
+
+    tau = np.arange(0,2*np.pi,delTau)
+
+    print('Integrating')
+    psi, u, w = integrate_case_one(xi,zeta,tau,xip,zetap,xi0,beta,Atilde)
+
+    ds = xr.Dataset({'psi':(('tau','zeta','xi'),psi),
+                     'u':(('tau','zeta','xi'),u),
+                     'w':(('tau','zeta','xi'),w)},
+                    {'tau': tau, 'zeta':zeta, 'xi':xi},
+                    {'xi0':xi0, 'beta':beta, 'Atilde':Atilde})
+    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau']:
+        ds[var].attrs['units'] = '-'
+
+    print('Saving')
+    ds.to_netcdf('../datasets/rotunno_case_1_{}.nc'.format(get_current_dt_str()),
+                 encoding={'psi':{'zlib':True, 'complevel':9},
+                           'u':{'zlib':True, 'complevel':9},
+                           'w':{'zlib':True, 'complevel':9}})
+    return ds
 
 def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
                            xi0=0.2, beta=7.27*10**(-3), Atilde=10**3):

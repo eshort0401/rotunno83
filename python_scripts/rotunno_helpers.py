@@ -9,6 +9,114 @@ from numba import jit, prange
 import numpy as np
 import xarray as xr
 
+# @jit(parallel=True)
+def integrate_case_one(xi,zeta,tau,xip,zetap,xi0,beta,Atilde):
+
+    psi = np.zeros((tau.size, zeta.size, xi.size), dtype=np.complex64)
+    u = np.zeros((tau.size, zeta.size, xi.size), dtype=np.complex64)
+    w = np.zeros((tau.size, zeta.size, xi.size), dtype=np.complex64)
+
+    psi_hat = np.zeros((zeta.size, xi.size), dtype=np.complex64)
+    u_hat = np.zeros((zeta.size, xi.size), dtype=np.complex64)
+    w_hat = np.zeros((zeta.size, xi.size), dtype=np.complex64)
+
+    # psi_integrand = np.zeros(k.size, dtype=np.complex64)
+    # u_integrand = np.zeros(k.size, dtype=np.complex64)
+    # w_integrand = np.zeros(k.size, dtype=np.complex64)
+
+    psi_intgd_dxp_dzp = np.zeros(zetap.size, dtype=np.complex64)
+    psi_intgd_dxp = np.zeros(xip.size, dtype=np.complex64)
+
+    u_intgd_dxp_dzp = np.zeros(zetap.size, dtype=np.complex64)
+    u_intgd_dxp = np.zeros(xip.size, dtype=np.complex64)
+
+    w_intgd_dxp_dzp = np.zeros(zetap.size, dtype=np.complex64)
+    w_intgd_dxp = np.zeros(xip.size, dtype=np.complex64)
+
+    # Perform numerical integrations filtering out unwanted cases
+    cond_zetap = (zetap==0)
+    for j in tqdm(prange(zeta.size), file=sys.stdout, position=0, leave=True):
+        cond_j = (j==0)*np.ones(zetap.size)
+        for i in range(xi.size):
+            for k in range(xip.size):
+                # Create filters
+                cond_1 = np.logical_and(cond_j, cond_zetap)
+                cond_xi_xip = (xi[i]==xip[k])*np.ones(zetap.size)
+                cond_xi_or_zetap = np.logical_or(cond_j, cond_zetap)
+                cond_2 = np.logical_and(cond_xi_xip, cond_xi_or_zetap)
+                cond_3 = (zeta[j]==zetap)
+
+                cond_psi = (cond_1+cond_2+cond_3).astype(np.bool)
+                cond_uw = (cond_xi_xip+cond_3).astype(np.bool)
+
+                psi_intgd_dxp_dzp[cond_psi] = calc_psi_ig(xi[i],xip[k],
+                                                          zeta[j],
+                                                          zetap[cond_psi],
+                                                          xi0)
+                u_intgd_dxp_dzp[cond_uw] = calc_u_ig(xi[i],xip[k],zeta[j],
+                                                     zetap[cond_uw])
+                u_intgd_dxp_dzp *= calc_exp_term(xip[k],zetap,xi0)
+                w_intgd_dxp_dzp[cond_uw] = calc_u_ig(xi[i],xip[k],zeta[j],
+                                                     zetap[cond_uw])
+                w_intgd_dxp_dzp *= calc_exp_term(xip[k],zetap,xi0)
+
+                psi_intgd_dxp[k] = np.trapz(psi_intgd_dxp_dzp,zetap)
+                u_intgd_dxp[k] = np.trapz(u_intgd_dxp_dzp,zetap)
+                w_intgd_dxp[k] = np.trapz(w_intgd_dxp_dzp,zetap)
+
+            psi_hat[j,i] = np.trapz(psi_intgd_dxp, xip)
+            u_hat[j,i] = np.trapz(u_intgd_dxp, xip)
+            w_hat[j,i] = np.trapz(w_intgd_dxp, xip)
+
+    # Add time dependence
+    psi = psi_hat*np.sin(tau)
+    u = u_hat*np.sin(tau)
+    w = w_hat*np.sin(tau)
+
+    # Scale
+    psi = -(beta*xi0*Atilde/(4*pi))*np.real(psi)
+    u = -(beta*xi0*Atilde/(4*pi))*np.real(u)
+    w = -(beta*xi0*Atilde/(4*pi))*np.real(w)
+
+    return psi, u, w
+
+# Term in integrand of psi
+@jit(parallel=True, nopython=True)
+def calc_psi_ig(xi,xip,zeta,zetap,xi0):
+    # cond = ((zeta==0 and zetap==0)
+    #         or (xi==xip and (zeta==0 or zetap==0))
+    #         or (zeta == zetaP))
+    # if cond:
+    #     psi_ig = 0
+    # elif (zeta == zetaP)
+    # else:
+    psi_ig = (np.log(((xi-xip)**2 + (zeta-zetap)**2) /
+              ((xi-xip)**2 + (zeta+zetap)**2))
+              *(np.exp(-zetap)/(xip**2+xi0**2)
+               -np.exp(-zeta)/(xi**2+xi0**2)))
+    return psi_ig
+
+@jit(parallel=True, nopython=True)
+def calc_w_ig(xi,xip,zeta,zetap):
+    w_ig = -(2*(xi-xip)*(-(zeta-zetap)**2+(zeta+zetap)**2)
+             /(((xi-xip)**2+(zeta-zetap)**2)
+               *((xi-xip)**2+(zeta+zetap)**2)))
+    return w_ig
+
+def calc_u_ig(xi,xip,zeta,zetap):
+    u_ig = (2*((zeta-zetap)*((xi-xip)**2
+               +(zeta+zetap)**2)
+               -(zeta+zetap)*((xi-xip)**2
+               +(zeta-zetap)**2))
+            /(((xi-xip)**2+(zeta-zetap)**2)
+              *((xi-xip)**2+(zeta+zetap)**2)))
+    return u_ig
+
+# Term in integrand for psi, psiXi and psiZeta
+@jit(parallel=True, nopython=True)
+def calc_exp_term(xip,zetap,xi0):
+    return np.exp(-zetap)/(xip**2+xi0**2)
+
 @jit(parallel=True)
 def integrate_case_two(xi,zeta,tau,k,xi0,beta,Atilde):
     psi = np.zeros((tau.size, zeta.size, xi.size))
