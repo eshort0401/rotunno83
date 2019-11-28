@@ -11,7 +11,7 @@ import xarray as xr
 
 from scipy.special import exp1
 
-# @jit(parallel=True)
+@jit(parallel=True)
 def integrate_qian(xi,zeta,tau,s,alpha,U,L,heat_right=True):
 
     psi = np.zeros((3, tau.size, zeta.size, xi.size), dtype=np.complex64)

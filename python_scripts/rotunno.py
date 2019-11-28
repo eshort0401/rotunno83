@@ -45,9 +45,9 @@ def solve_rotunno_case_one(xiN=41, zetaN=41, tauN=32, xipN=1000, zetapN=1000,
     delTau = 2*np.pi/tauN
 
     # Initialise solution arrays
-    psi = np.zeros((xiN,zetaN,tauN))
-    u = np.zeros((xiN,zetaN,tauN))
-    w = np.zeros((xiN,zetaN,tauN))
+    psi = np.zeros((tauN,zetaN,xiN))
+    u = np.zeros((tauN,zetaN,xiN))
+    w = np.zeros((tauN,zetaN,xiN))
 
     # Initialise domains
     xi = np.linspace(-3,3,xiN)
@@ -194,12 +194,13 @@ def redimensionalise_rotunno(ds, h=500,
     ds = ds.assign_coords(tau = ds.tau / omega)
     # Note this is different from the paper!
     ds['u'] = ds.u * h * omega
-    ds['w'] = ds.w * h * omega * (omega**2 - f**2)**(1/2)/N
     ds['psi'] = ds.psi * h**2 * omega
     if np.abs(f) < 2*omega*np.sin(np.deg2rad(30)):
         ds = ds.assign_coords(xi = ds.xi*N*h*(omega**2-f**2)**(-1/2))
+        ds['w'] = ds.w * h * omega * (omega**2 - f**2)**(1/2)/N
     elif np.abs(f) > 2*omega*np.sin(np.deg2rad(30)):
         ds = ds.assign_coords(xi = ds.xi*N*h*((f**2-omega**2)**(-1/2)))
+        ds['w'] = ds.w * h * omega * (f**2-omega**2)**(1/2)/N
     ds.attrs['h'] = h
     ds.attrs['f'] = f
     ds.attrs['N'] = N
@@ -284,7 +285,7 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
 
     if save:
         outFile='./../figures/{}_'.format(var) + get_current_dt_str() + '.png'
-        fig.savefig(outFile, dpi=80, writer='imagemagick')
+        fig.savefig(outFile, dpi=100, writer='imagemagick')
 
     return fig, ax, contourPlot, levels, x, z
 
@@ -307,9 +308,12 @@ def animateCont(ds, var='psi', cmap='RdBu_r'):
                          interval=200)
 
     outFile='./../figures/{}_'.format(var) + get_current_dt_str() + '.gif'
-    anim.save(outFile, dpi=80, writer='imagemagick')
+    anim.save(outFile, dpi=100, writer='imagemagick')
 
 def plotVelocity(ds, t=0, save=False):
+
+    # import pdb
+    # pdb.set_trace()
 
     plt.close('all')
     init_fonts()
@@ -336,20 +340,19 @@ def plotVelocity(ds, t=0, save=False):
 
 
     contourPlot=ax.contourf(x, z, ds.speed.isel(tau=t),
-                            cmap='Reds')
+                            cmap='Reds', levels=levels)
 
     skip=int(np.floor(np.size(ds.xi)/12))
 
     sQ=int(np.ceil(skip/2))
-    speedMaxQ=np.amax((ds.u**2 + ds.w**2)**(1/2))
-
-    sQ=int(np.ceil(skip/2))
-    dxi=ds.xi[1]-ds.xi[0]
+    dxi=x[1]-x[0]
+    uQ = ds.u[:,sQ::skip,sQ::skip]
+    wQ = ds.w[:,sQ::skip,sQ::skip]
+    speedMaxQ=np.amax((uQ**2 + wQ**2)**(1/2)).values
     scale=(speedMaxQ/(skip*dxi)).values
 
     ax.quiver(x[sQ::skip], z[sQ::skip],
-              ds.u.isel(tau=t)[sQ::skip,sQ::skip],
-              ds.w.isel(tau=t)[sQ::skip,sQ::skip],
+              uQ.isel(tau=t), wQ.isel(tau=t),
               units='xy', angles='xy', scale=scale)
 
     plt.title('Velocity [' + ds.u.attrs['units'] + ']')
@@ -358,26 +361,26 @@ def plotVelocity(ds, t=0, save=False):
 
     if save:
         outFile='./../figures/velocity_' + get_current_dt_str() + '.png'
-        plt.savefig(outFile, dpi=80, writer='imagemagick')
+        plt.savefig(outFile, dpi=100, writer='imagemagick')
 
-    return ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z
+    return ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z, uQ, wQ
 
 def animateVelocity(ds):
 
     plt.ioff()
     init_fonts()
 
-    ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z = plotVelocity(ds,t=0)
+    ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z, uQ, wQ = plotVelocity(ds,t=0)
 
     def update(i):
         label = 'Timestep {0}'.format(i)
         print(label)
         ax.collections = []
         contourPlot=ax.contourf(x, z, ds.speed.isel(tau=i),
-                                cmap='Reds')
+                                cmap='Reds', levels=levels)
+
         ax.quiver(x[sQ::skip], z[sQ::skip],
-                  ds.u.isel(tau=i)[sQ::skip,sQ::skip],
-                  ds.w.isel(tau=i)[sQ::skip,sQ::skip],
+                  uQ.isel(tau=i), wQ.isel(tau=i),
                   units='xy', angles='xy', scale=scale)
 
         return contourPlot, ax
@@ -386,7 +389,7 @@ def animateVelocity(ds):
                          interval=200)
 
     outFile='./../figures/velocity_' + get_current_dt_str() + '.gif'
-    anim.save(outFile, dpi=80, writer='imagemagick')
+    anim.save(outFile, dpi=100, writer='imagemagick')
 
     plt.close("all")
 
