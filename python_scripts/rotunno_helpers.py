@@ -78,18 +78,8 @@ def integrate_case_one(xi,zeta,tau,xip,zetap,xi0,beta,Atilde):
 # Term in integrand of psi
 @jit(parallel=True, nopython=True)
 def calc_psi_ig(xi,xip,zeta,zetap,xi0):
-    # cond = ((zeta==0 and zetap==0)
-    #         or (xi==xip and (zeta==0 or zetap==0))
-    #         or (zeta == zetaP))
-    # if cond:
-    #     psi_ig = 0
-    # elif (zeta == zetaP)
-    # # # else:
-    # psi_ig = (np.log(((xi-xip)**2 + (zeta-zetap)**2) /
-    #           ((xi-xip)**2 + (zeta+zetap)**2))
-    #           *(np.exp(-zetap)/(xip**2+xi0**2)
-    #            -np.exp(-zeta)/(xi**2+xi0**2)))
-
+    # Note we are still not suppressing the singularity, but given behaviour of
+    # log does not appear to matter. Better solution desirable!
     psi_ig = (np.log(((xi-xip)**2 + (zeta-zetap)**2) /
               ((xi-xip)**2 + (zeta+zetap)**2))
               *(np.exp(-zetap)/(xip**2+xi0**2)))
