@@ -212,15 +212,15 @@ def integrate_qian_U0(xi,zeta,tau,s,alpha,L,heat_right=True):
             for l in range(tau.size):
 
                 # Calc psi
-                psi1_ig = calc_psi1(xi[i],zeta[j],tau[l],k_1,0,L)
+                psi1_ig = calc_psi1(xi[i],zeta[j],tau[l],k_1,0,d,sigma)
                 psi[0][l,j,i] = np.trapz(psi1_ig, k_1)
-                psi2_ig = calc_psi2_U0(xi[i],zeta[j],tau[l],k_1,L)
+                psi2_ig = calc_psi2_U0(xi[i],zeta[j],tau[l],k_1,d,sigma)
                 psi[1][l,j,i] = np.trapz(psi2_ig, k_1)
 
                 # Calc u
-                u1_ig = calc_u1(xi[i],zeta[j],tau[l],k_1,0,L)
+                u1_ig = calc_u1(xi[i],zeta[j],tau[l],k_1,0,d,sigma)
                 u[0][l,j,i] = np.trapz(u1_ig, k_1)
-                u2_ig = calc_u2_U0(xi[i],zeta[j],tau[l],k_1,L)
+                u2_ig = calc_u2_U0(xi[i],zeta[j],tau[l],k_1,d,sigma)
                 u[1][l,j,i] = np.trapz(u2_ig, k_1)
 
                 # Calc w

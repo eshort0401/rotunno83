@@ -18,6 +18,7 @@ import xarray as xr
 from qian_helpers import integrate_qian, integrate_qian_U0
 from qian_helpers import calc_theta, calc_k_2, calc_k_3
 from rotunno_helpers import integrate_case_two, integrate_case_one
+from channel_helpers import integrate_channel, integrate_channel_U0
 
 def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
                             latitude=-10, h=500):
@@ -36,6 +37,7 @@ def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
 
     return beta, Atilde, f, h
 
+
 def solve_rotunno_case_one(xiN=41, zetaN=41, tauN=32, xipN=1000, zetapN=1000,
                            xi0=0.2, beta=7.27*10**(-3), Atilde=10**3):
 
@@ -53,8 +55,18 @@ def solve_rotunno_case_one(xiN=41, zetaN=41, tauN=32, xipN=1000, zetapN=1000,
     xi = np.linspace(-3,3,xiN)
     zeta = np.linspace(0,6,zetaN)
 
-    xip = np.linspace(-10,10,xipN)
-    zetap = np.linspace(0,20,zetapN)
+    # This is so ugly fix it!
+    # Make sure xip, zetap have even number of points to deal with annoying
+    # log singularity. Need a better solution to this but struggling so hard...
+    if (xipN % 2 == 0):
+        xip = np.linspace(-10,10,xipN)
+    else:
+        xip = np.linspace(-10,10,xipN+1)
+
+    if (zetaN % 2 == 0):
+        zetap = np.linspace(0,6,xipN)
+    else:
+        zetap = np.linspace(0,6,xipN+1)
 
     tau = np.arange(0,2*np.pi,delTau)
 
@@ -75,6 +87,7 @@ def solve_rotunno_case_one(xiN=41, zetaN=41, tauN=32, xipN=1000, zetapN=1000,
                            'u':{'zlib':True, 'complevel':9},
                            'w':{'zlib':True, 'complevel':9}})
     return ds
+
 
 def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
                            xi0=0.2, beta=7.27*10**(-3), Atilde=10**3):
@@ -169,6 +182,56 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
 
     return ds
 
+
+def solve_channel(xiN=41, zetaN=21, tauN=32, sN=1000, alpha=3,
+                  U=0, d=3, sigma=4, heat_island=True, save=False):
+
+    print('Initialising')
+
+    # Time interval
+    delTau = 2*np.pi/tauN
+    delS = 1/sN
+    delZeta = 4/zetaN
+
+    # Initialise domains
+    xi = np.linspace(-8,8,xiN, dtype=np.float64)
+    # Dont start at zero as exponential integral not defined there
+    zeta = np.linspace(0,8,zetaN, dtype=np.float64)
+    tau = np.arange(0,2*np.pi,delTau, dtype=np.float64)
+    s = np.arange(delS,1,delS, dtype=np.float64)
+
+    print('Integrating')
+    if U==0:
+        psi, u, w, bq, bw = integrate_channel_U0(xi,zeta,tau,s,alpha,sigma,d,
+                                                 heat_island=heat_island)
+        modes=2
+    else:
+        psi, u, w, bq, bw = integrate_channel(xi,zeta,tau,s,alpha,U,sigma,d,
+                                              heat_island=heat_island)
+        modes=3
+
+    ds = xr.Dataset({'psi':(('mode','tau','zeta','xi'),psi),
+                     'u':(('mode','tau','zeta','xi'),u),
+                     'w':(('mode','tau','zeta','xi'),w),
+                     'bq':(('tau','zeta','xi'),bq),
+                     'bw':(('mode','tau','zeta','xi'),bw)},
+                    {'mode': np.arange(1,modes+1), 'tau': tau,
+                    'zeta':zeta, 'xi':xi},
+                    {'U':U, 'd':d, 'sigma':sigma})
+
+    print('Saving')
+    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau', 'bq', 'bw']:
+        ds[var].attrs['units'] = '-'
+
+    if save:
+        ds.to_netcdf('../datasets/qian_{}.nc'.format(get_current_dt_str()),
+                     encoding={'psi':{'zlib':True, 'complevel':9},
+                               'u':{'zlib':True, 'complevel':9},
+                               'w':{'zlib':True, 'complevel':9}})
+
+    return ds
+
+
 def assign_units(ds):
 
     ds.xi.attrs['units'] = 'm'
@@ -229,6 +292,27 @@ def redimensionalise_qian(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
 
     return ds
 
+def redimensionalise_channel(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
+
+    omega = 2*np.pi/(24*3600)
+    ds = ds.assign_coords(xi = ds.xi*N*h/omega)
+    ds = ds.assign_coords(zeta = ds.zeta*h)
+    ds = ds.assign_coords(tau = ds.tau/omega)
+    ds['u'] = ds.u*Q0/(N*omega)
+    ds['w'] = ds.w*Q0/(N**2)
+    ds['psi'] = ds.psi*h*Q0/(N*omega)
+    ds['bq'] = ds.bq*Q0/omega
+    ds['bw'] = ds.bw*Q0/omega
+    ds.attrs['d'] = ds.attrs['d']*N*h/omega
+    ds.attrs['U'] = ds.attrs['U']*N*h
+    ds.attrs['Q0'] = Q0
+    ds.attrs['h'] = h
+    ds.attrs['N'] = N
+    ds.attrs['omega'] = omega
+    ds = assign_units(ds)
+
+    return ds
+
 # Plotting functions
 def init_fonts():
     plt.rc('text', usetex=False)
@@ -265,16 +349,21 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
         varInc = (varMax-varMin)/10
         levels = np.arange(varMin,varMax+varInc,varInc)
 
-    if ds.xi.attrs['units'] == 'm':
-        x = ds.xi/1000
-        z = ds.zeta/1000
-        plt.xlabel('Distance [km]')
-        plt.ylabel('Height [km]')
-    else:
-        x = ds.xi
-        z = ds.zeta
-        plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
-        plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
+    try:
+        if ds.xi.attrs['units'] == 'm':
+            x = ds.xi/1000
+            z = ds.zeta/1000
+            plt.xlabel('Distance [km]')
+            plt.ylabel('Height [km]')
+        else:
+            x = ds.xi
+            z = ds.zeta
+            plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
+            plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
+    except:
+        for var in ds.keys():
+            ds[var].attrs['units'] = '?'
+
 
     contourPlot=plt.contourf(x, z, ds[var].isel(tau=t),
                             levels=levels, cmap=cmap)
