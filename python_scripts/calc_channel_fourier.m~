@@ -1,3 +1,0 @@
-syms x a k D k pi
-assume(D,'positive')
-integrate(sin(x))
