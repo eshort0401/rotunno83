@@ -183,7 +183,7 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
 
     return ds
 
-def solve_piecewise_N(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
+def solve_piecewise_N(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=2,
                       L=0.1, R=0.4, zetaT=5, heat_right=True, save=True):
 
     print('Initialising')
@@ -196,10 +196,10 @@ def solve_piecewise_N(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
     delZeta = 4/zetaN
 
     # Initialise domains
-    xi = np.linspace(-30,30,xiN, dtype=np.float64)
+    xi = np.linspace(-40,40,xiN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     zeta1 = np.linspace(0,zetaT,zetaN, dtype=np.float64)
-    zeta2 = np.linspace(zetaT,3*zetaT,2*zetaN, dtype=np.float64)
+    zeta2 = np.linspace(zetaT,2*zetaT,zetaN, dtype=np.float64)
     zeta = np.concatenate([zeta1,zeta2[1:]])
     tau = np.arange(0,2*np.pi,delTau, dtype=np.float64)
     s = np.arange(delS,1,delS, dtype=np.float64)

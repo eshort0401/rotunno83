@@ -11,7 +11,7 @@ import xarray as xr
 
 from scipy.special import exp1
 
-@jit(parallel=True)
+# @jit(parallel=True)
 def integrate_piecewise_N(xi,zeta,tau,s,alpha,L,R,zetaT,zetaN,heat_right=True):
 
     psi = np.zeros((2, tau.size, zeta.size, xi.size), dtype=np.complex64)
@@ -63,18 +63,18 @@ def integrate_piecewise_N(xi,zeta,tau,s,alpha,L,R,zetaT,zetaN,heat_right=True):
                 psi[1][l,j,i] = np.trapz(psi2_ig, k_1)
 
                 # Calc u
-                # u1_ig = calc_u1_1(xi[i],zeta[j],tau[l],k_1,0,d,sigma)
-                # u[0][l,j,i] = np.trapz(u1_ig, k_1)
-                # u2_ig = calc_u2_1(xi[i],zeta[j],tau[l],k_1,d,sigma)
-                # u[1][l,j,i] = np.trapz(u2_ig, k_1)
+                u1_ig = calc_u1_1(xi[i],zeta[j],tau[l],k_1,L)
+                u[0][l,j,i] = np.trapz(u1_ig, k_1)
+                u2_ig = calc_u2_1(xi[i],zeta[j],tau[l],k_1,L)
+                u[1][l,j,i] = np.trapz(u2_ig, k_1)
 
                 # Calc w
-                # w[0][l,j,i] = np.trapz(psi1_ig*1j*k_1,k_1)
-                # w[1][l,j,i] = np.trapz(psi2_ig*1j*k_1,k_1)
+                w[0][l,j,i] = np.trapz(psi1_ig*1j*k_1,k_1)
+                w[1][l,j,i] = np.trapz(psi2_ig*1j*k_1,k_1)
 
                 # Calc bw
-                # bw[0][l,j,i] = np.trapz(psi1_ig*k_1, k_1)
-                # bw[1][l,j,i] = np.trapz(-psi2_ig*k_1, k_1)
+                bw[0][l,j,i] = np.trapz(psi1_ig*k_1, k_1)
+                bw[1][l,j,i] = np.trapz(-psi2_ig*k_1, k_1)
 
     # Perform numerical integration zetaT<zeta
     for j in tqdm(prange(zetaN,zeta.size), file=sys.stdout):
@@ -87,19 +87,19 @@ def integrate_piecewise_N(xi,zeta,tau,s,alpha,L,R,zetaT,zetaN,heat_right=True):
                 psi2_ig = calc_psi2_2(xi[i],zeta[j],tau[l],k_1,L,R,zetaT)
                 psi[1][l,j,i] = np.trapz(psi2_ig, k_1)
 
-                # Calc u
-                # u1_ig = calc_u1_2(xi[i],zeta[j],tau[l],k_1,0,d,sigma)
-                # u[0][l,j,i] = np.trapz(u1_ig, k_1)
-                # u2_ig = calc_u2_2(xi[i],zeta[j],tau[l],k_1,d,sigma)
-                # u[1][l,j,i] = np.trapz(u2_ig, k_1)
+                #Calc u
+                u1_ig = calc_u1_2(xi[i],zeta[j],tau[l],k_1,L,R,zetaT)
+                u[0][l,j,i] = np.trapz(u1_ig, k_1)
+                u2_ig = calc_u2_2(xi[i],zeta[j],tau[l],k_1,L,R,zetaT)
+                u[1][l,j,i] = np.trapz(u2_ig, k_1)
 
                 # Calc w
-                # w[0][l,j,i] = np.trapz(psi1_ig*1j*k_1,k_1)
-                # w[1][l,j,i] = np.trapz(psi2_ig*1j*k_1,k_1)
+                w[0][l,j,i] = np.trapz(psi1_ig*1j*k_1,k_1)
+                w[1][l,j,i] = np.trapz(psi2_ig*1j*k_1,k_1)
 
                 # Calc bw
-                # bw[0][l,j,i] = np.trapz(psi1_ig*k_1, k_1)
-                # bw[1][l,j,i] = np.trapz(-psi2_ig*k_1, k_1)
+                bw[0][l,j,i] = np.trapz(psi1_ig*k_1, k_1)
+                bw[1][l,j,i] = np.trapz(-psi2_ig*k_1, k_1)
 
     psi = (1/np.pi)*np.real(psi)
     u = (1/np.pi)*np.real(u)
@@ -132,98 +132,80 @@ def calc_psi2_1(xi,zeta,tau,k,L,R):
 
 @jit(parallel=True, nopython=True)
 def calc_psi1_2(xi,zeta,tau,k,L,R,zetaT):
-    psi1_2 = (-1/k*np.exp(-L*k)/2
-              *(-np.exp(-zeta)*(np.sin(k*zeta)+k*np.cos(k*zeta))+k)/(k**2+1)
+    psi1_2 = (-1/k/(k**2+1)*np.exp(-L*k)/2
+              *((-np.exp(-zeta)*(np.sin(k*zeta)+k*np.cos(k*zeta))+k)
               *np.exp(1j*k/R*zeta)*np.exp(1j*zetaT*(k-k/R))
-              -(-1j*k-1)/(k**2+1)*np.exp((1j*k-1)*zeta)*np.sin(k*zetaT)
-               *np.exp(1j*k/R*zetaT)*np.exp(-1j*k/R*zeta))*np.exp(1j*(k*xi+tau))
+              -(-1j*k-1)*np.exp((1j*k-1)*zeta)*np.sin(k*zetaT)
+               *np.exp(1j*k/R*zetaT)*np.exp(-1j*k/R*zeta))*np.exp(1j*(k*xi+tau)))
     return psi1_2
 
 @jit(parallel=True, nopython=True)
 def calc_psi2_2(xi,zeta,tau,k,L,R,zetaT):
-    psi2_2 = (-1/k*np.exp(-L*k)/2
-              *(-np.exp(-zeta)*(np.sin(k*zeta)+k*np.cos(k*zeta))+k)/(k**2+1)
+    psi2_2 = (-1/k/(k**2+1)*np.exp(-L*k)/2
+              *((-np.exp(-zeta)*(np.sin(k*zeta)+k*np.cos(k*zeta))+k)
               *np.exp(-1j*k/R*zeta)*np.exp(-1j*zetaT*(k-k/R))
-              -(1j*k-1)/(k**2+1)*np.exp((-1j*k-1)*zeta)*np.sin(k*zetaT)
-               *np.exp(-1j*k/R*zetaT)*np.exp(1j*k/R*zeta))*np.exp(1j*(k*xi-tau))
+              -(1j*k-1)*np.exp((-1j*k-1)*zeta)*np.sin(k*zetaT)
+               *np.exp(-1j*k/R*zetaT)*np.exp(1j*k/R*zeta))*np.exp(1j*(k*xi-tau)))
     return psi2_2
-
-@jit(parallel=True, nopython=True)
-def calc_psi2a(xi,zeta,tau,s,alpha,U,L):
-    theta = calc_theta(s,alpha)
-    k = calc_k_2(theta,U)
-    # Note only difference between u2a is sign
-    psi2a = (1/(2*U)*calc_C2(xi,tau,k,U,L)*np.exp(-zeta)*np.cos(theta)
-             *alpha*s**(alpha-1)*np.pi/2)
-    return psi2a
-
-@jit(parallel=True, nopython=True)
-def calc_psi2b(xi,zeta,tau,s,alpha,U,L):
-    theta = calc_theta(s, alpha=alpha)
-    k = calc_k_2(theta,U)
-    k0 = calc_k_2(0,U)
-    psi2b = (-1/(2*U)*np.exp(1j*zeta/U)
-             *(calc_C2(xi,tau,k,U,L)-calc_C2(xi,tau,k0,U,L))
-             *np.exp(-1j*zeta/(U*np.sin(theta)))*np.cos(theta)
-             *alpha*s**(alpha-1)*np.pi/2)
-    return psi2b
-
-@jit(parallel=True, nopython=True)
-def calc_psi3a(xi,zeta,tau,s,alpha,U,L):
-    theta = calc_theta(s, alpha)
-    k = calc_k_3(theta,U)
-    psi3a = (U/2*calc_C3(xi,tau,k,U,L)*np.exp(-zeta)*np.cos(theta)
-             *alpha*s**(alpha-1)*np.pi/2)
-    return psi3a
-
-@jit(parallel=True, nopython=True)
-def calc_psi3b(xi,zeta,tau,s,alpha,U,L):
-    theta = calc_theta(s, alpha=alpha)
-    k = calc_k_3(theta,U)
-    k0 = calc_k_3(0,U)
-    psi3b = (-U/2*(calc_C3(xi,tau,k,U,L)-calc_C3(xi,tau,k0,U,L))
-             *np.exp(1j*zeta/(U*np.sin(theta)))*np.cos(theta)
-             *alpha*s**(alpha-1)*np.pi/2)
-    return psi3b
-
-# w functions
-@jit(parallel=True, nopython=True)
-def calc_w2b(xi,zeta,tau,s,alpha,U,L):
-    theta = calc_theta(s, alpha=alpha)
-    k = calc_k_2(theta,U)
-    k0 = calc_k_2(0,U)
-    w2b = (-1/(2*U)*np.exp(1j*zeta/U)
-             *(calc_C2x(xi,tau,k,U,L)-calc_C2x(xi,tau,k0,U,L))
-             *np.exp(-1j*zeta/(U*np.sin(theta)))*np.cos(theta)
-             *alpha*s**(alpha-1)*np.pi/2)
-    return w2b
-
-@jit(parallel=True, nopython=True)
-def calc_w3b(xi,zeta,tau,s,alpha,U,L):
-    theta = calc_theta(s, alpha=alpha)
-    k = calc_k_3(theta,U)
-    k0 = calc_k_3(0,U)
-    w3b = (-U/2*(calc_C3x(xi,tau,k,U,L)-calc_C3x(xi,tau,k0,U,L))
-             *np.exp(1j*zeta/(U*np.sin(theta)))*np.cos(theta)
-             *alpha*s**(alpha-1)*np.pi/2)
-    return w3b
 
 # u functions
 @jit(parallel=True, nopython=True)
-def calc_u1(xi,zeta,tau,k,U,L):
-    m=k/(1+k*U)
-    u1 = (-(1/2)*np.exp(-k*L)/(k**2+(1+k*U)**2)
-          *(1j*m*np.exp(1j*m*zeta)+np.exp(-zeta))
-          *np.exp(1j*(k*xi+tau)))
-    return u1
+def calc_u1_1(xi,zeta,tau,k,L):
+    u1_1 = (-(1/2)*np.exp(-k*L)/(k**2+1)
+            *(1j*k*np.exp(1j*k*zeta)+np.exp(-zeta))
+            *np.exp(1j*(k*xi+tau)))
+    return u1_1
 
 @jit(parallel=True, nopython=True)
-def calc_u2_U0(xi,zeta,tau,k,L):
-    m=k
-    u2 = (-(1/2)*np.exp(-k*L)/(k**2+1)
-          *(-1j*m*np.exp(-1j*m*zeta)+np.exp(-zeta))
-          *np.exp(1j*(k*xi-tau)))
-    return u2
+def calc_u2_1(xi,zeta,tau,k,L):
+    u2_1 = (-(1/2)*np.exp(-k*L)/(k**2+1)
+            *(-1j*k*np.exp(-1j*k*zeta)+np.exp(-zeta))
+            *np.exp(1j*(k*xi-tau)))
+    return u2_1
+
+# u functions
+@jit(parallel=True, nopython=True)
+def calc_u1_2(xi,zeta,tau,k,L,R,zetaT):
+    u1_2 = ((-R*(k**2 + 1)
+             *np.exp((R*zeta + 3.0*1j*k*zeta + 1.0*1j*k*zetaT*(R - 1))/R)
+             *np.sin(k*zeta)
+             -R*(1.0*1j*k - 1)*(1.0*1j*k + 1)
+             *np.exp((R*zeta*(1.0*1j*k - 1)
+                  + 2*R*zeta + 1.0*1j*k*zeta
+                  + 1.0*1j*k*zetaT)/R)
+             *np.sin(k*zetaT) + 1j*k*(1.0*1j*k + 1)
+             *np.exp((R*zeta*(1.0*1j*k - 1) + 2*R*zeta + 1.0*1j*k*zeta
+                   + 1.0*1j*k*zetaT)/R)
+             *np.sin(k*zetaT)
+             -1.0*1j*k*(k*np.exp(zeta)-k*np.cos(k*zeta)-np.sin(k*zeta))
+             *np.exp((R*zeta + 3.0*1j*k*zeta + 1.0*1j*k*zetaT*(R - 1))/R))
+            *np.exp((-L*R*k - 2*R*zeta - 2.0*1j*k*zeta)/R)
+            /(2*R*k*(k**2 + 1))
+            *np.exp(1j*(k*xi+tau)))
+    return u1_2
+
+@jit(parallel=True, nopython=True)
+def calc_u2_2(xi,zeta,tau,k,L,R,zetaT):
+    u2_2 = ((-R*(k**2 + 1)
+             *np.exp((2*R*zeta*(1.0*1j*k + 1) + R*zeta + 1.0*1j*k*zeta
+                      + 1.0*1j*k*zetaT*(R - 1) + 2.0*1j*k*zetaT)/R)
+             *np.sin(k*zeta)
+             -R*(1.0*1j*k - 1)*(1.0*1j*k + 1)
+             *np.exp((R*zeta*(1.0*1j*k + 1) + 2*R*zeta + 3.0*1j*k*zeta
+                      +2.0*1j*k*zetaT*(R - 1) + 1.0*1j*k*zetaT)/R)
+             *np.sin(k*zetaT)
+             +1j*k*(1.0*1j*k - 1)
+             *np.exp((R*zeta*(1.0*1j*k + 1) + 2*R*zeta
+                      +3.0*1j*k*zeta+2.0*1j*k*zetaT*(R - 1)+1.0*1j*k*zetaT)/R)
+             *np.sin(k*zetaT)
+             +1j*k*(k*np.exp(zeta) - k*np.cos(k*zeta) - np.sin(k*zeta))
+             *np.exp((2*R*zeta*(1.0*1j*k + 1) + R*zeta + 1.0*1j*k*zeta
+                      +1.0*1j*k*zetaT*(R - 1) + 2.0*1j*k*zetaT)/R))
+            *np.exp((-L*R*k - 2*R*zeta*(1.0*1j*k + 1) - 2*R*zeta - 2.0*1j*k*zeta
+                     -2.0*1j*k*zetaT*(R - 1) - 2.0*1j*k*zetaT)/R)
+            /(2*R*k*(k**2 + 1))
+            *np.exp(1j*(k*xi-tau)))
+    return u2_2
 
 @jit(parallel=True, nopython=True)
 def calc_u2a(xi,zeta,tau,s,alpha,U,L):
