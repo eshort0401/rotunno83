@@ -20,6 +20,7 @@ from qian_helpers import calc_theta, calc_k_2, calc_k_3
 from rotunno_helpers import integrate_case_two, integrate_case_one
 from channel_helpers import integrate_channel, integrate_channel_U0
 from piecewise_N_helpers import integrate_piecewise_N
+from continuous_N_helpers import integrate_continuous_N
 
 def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
                             latitude=-10, h=500):
@@ -196,7 +197,7 @@ def solve_piecewise_N(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=2,
     delZeta = 4/zetaN
 
     # Initialise domains
-    xi = np.linspace(-40,40,xiN, dtype=np.float64)
+    xi = np.linspace(-60,60,xiN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     zeta1 = np.linspace(0,zetaT,zetaN, dtype=np.float64)
     zeta2 = np.linspace(zetaT,2*zetaT,zetaN, dtype=np.float64)
@@ -206,6 +207,56 @@ def solve_piecewise_N(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=2,
 
     psi, u, w, bq, bw = integrate_piecewise_N(xi,zeta,tau,s,alpha,L,R,zetaT,
                                               zetaN, heat_right=heat_right)
+    modes=2
+
+    ds = xr.Dataset({'psi':(('mode','tau','zeta','xi'),psi),
+                     'u':(('mode','tau','zeta','xi'),u),
+                     'w':(('mode','tau','zeta','xi'),w),
+                     'bq':(('tau','zeta','xi'),bq),
+                     'bw':(('mode','tau','zeta','xi'),bw)},
+                    {'mode': np.arange(1,modes+1), 'tau': tau,
+                    'zeta':zeta, 'xi':xi},
+                    {'U':U, 'L':L})
+
+    print('Saving')
+    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau', 'bq', 'bw']:
+        ds[var].attrs['units'] = '-'
+
+    if save:
+        ds.to_netcdf('../datasets/qian_{}.nc'.format(get_current_dt_str()),
+                     encoding={'psi':{'zlib':True, 'complevel':9},
+                               'u':{'zlib':True, 'complevel':9},
+                               'w':{'zlib':True, 'complevel':9}})
+
+    return ds
+
+
+def solve_continuous_N(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=2,
+                       L=0.1, R=0.4, zetaT1=5, zetaT2=10, heat_right=True,
+                       save=True):
+
+    print('Initialising')
+
+    U=0
+
+    # Time interval
+    delTau = 2*np.pi/tauN
+    delS = 1/sN
+    delZeta = 4/zetaN
+
+    # Initialise domains
+    xi = np.linspace(-60,60,xiN, dtype=np.float64)
+    # Dont start at zero as exponential integral not defined there
+    zeta1 = np.linspace(0,zetaT1,zetaN, dtype=np.float64)
+    zeta2 = np.linspace(zetaT1,zetaT2,zetaN+1, dtype=np.float64)
+    zeta3 = np.linspace(zetaT2,1.5*zetaT2,zetaN+1, dtype=np.float64)
+    zeta = np.concatenate([zeta1,zeta2[1:],zeta3[1:]])
+    tau = np.arange(0,2*np.pi,delTau, dtype=np.float64)
+    s = np.arange(delS,1,delS, dtype=np.float64)
+
+    psi, u, w, bq, bw = integrate_continuous_N(xi,zeta,tau,s,alpha,L,R,
+                                               zetaT1, zetaT2, zetaN,
+                                               heat_right=heat_right)
     modes=2
 
     ds = xr.Dataset({'psi':(('mode','tau','zeta','xi'),psi),
