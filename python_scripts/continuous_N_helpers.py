@@ -48,7 +48,7 @@ def integrate_continuous_N(xi,zeta,tau,s,alpha,L,R,zetaT1,zetaT2,zetaN,
     # Perform numerical integration zetaT1<zetaT2
     print('Integrating zetaT1 < zeta <= zetaT2.')
     m = (1/R-1)/(zetaT2-zetaT1)
-    pcfd_vec = np.frompyfunc(mpmath.pcfd,2,1)
+    pcfd_vec = np.frompyfunc(mpmath.pcfd, 2, 1)
 
     A1 = (-(1/2)*np.exp(-k_1*L)/(k_1**2+1)*np.exp(1j*k_1*zetaT1)
           /pcfd_vec(-1/2,(1-1j)*k_1**(1/2)*m**(-1/2)).astype(np.complex64))
@@ -154,8 +154,8 @@ def loop2(xi,zeta,tau,k_1,L,R,zetaN,psi,u,w,bw,A1,A2,B1,B2,j):
             # # Calc w
             # w[0][l,j,i] = np.trapz(psi1_ig*1j*k_1,k_1)
             # w[1][l,j,i] = np.trapz(psi2_ig*1j*k_1,k_1)
-            #
-            # # Calc bw
+            # #
+            # # # Calc bw
             # bw[0][l,j,i] = np.trapz(psi1_ig*k_1, k_1)
             # bw[1][l,j,i] = np.trapz(-psi2_ig*k_1, k_1)
 
@@ -184,8 +184,8 @@ def loop3(xi,zeta,tau,k_1,L,R,zetaN,psi,u,w,bw,C1,C2):
                 # # Calc w
                 # w[0][l,j,i] = np.trapz(psi1_ig*1j*k_1,k_1)
                 # w[1][l,j,i] = np.trapz(psi2_ig*1j*k_1,k_1)
-                #
-                # # Calc bw
+                # #
+                # # # Calc bw
                 # bw[0][l,j,i] = np.trapz(psi1_ig*k_1, k_1)
                 # bw[1][l,j,i] = np.trapz(-psi2_ig*k_1, k_1)
 

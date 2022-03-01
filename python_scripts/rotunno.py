@@ -476,6 +476,7 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
 
     return fig, ax, contourPlot, levels, x, z
 
+
 def animateCont(ds, var='psi', cmap='RdBu_r'):
 
     plt.ioff()
@@ -486,16 +487,15 @@ def animateCont(ds, var='psi', cmap='RdBu_r'):
         print(label, )
         # Update the line and the axes (with a new xlabel). Return a tuple of
         # "artists" that have to be redrawn for this frame.
-        contourPlot=ax.contourf(x, z, ds[var].isel(tau=i),
-                                levels=levels, cmap=cmap)
+        contourPlot = ax.contourf(
+            x, z, ds[var].isel(tau=i), levels=levels, cmap=cmap)
         return contourPlot, ax
 
-    anim = FuncAnimation(fig, update,
-                         frames=np.arange(0, np.size(ds.tau)),
-                         interval=200)
+    anim = FuncAnimation(
+        fig, update, frames=np.arange(0, np.size(ds.tau)), interval=200)
 
-    outFile='./../figures/{}_'.format(var) + get_current_dt_str() + '.gif'
-    anim.save(outFile, dpi=100, writer='imagemagick')
+    outFile = './../figures/{}_'.format(var) + get_current_dt_str() + '.gif'
+    anim.save(outFile, dpi=200, writer='imagemagick')
 
 def plotVelocity(ds, t=0, save=False):
 
