@@ -184,50 +184,54 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
 
     return ds
 
-def solve_piecewise_N(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=2,
-                      L=0.1, R=0.4, zetaT=5, heat_right=True, save=True):
 
-    print('Initialising')
+def solve_piecewise_N(
+        xN=241, zN=121, tN=32, sN=2000, alpha=2,
+        L=0.1, N=2, H1=4, A=1, heat_right=True, save=True):
 
-    U=0
+    print('Initialising.')
 
     # Time interval
-    delTau = 2*np.pi/tauN
+    del_t = 2*np.pi/tN
     delS = 1/sN
-    delZeta = 4/zetaN
 
     # Initialise domains
-    xi = np.linspace(-60,60,xiN, dtype=np.float64)
+    x = np.linspace(-20, 20, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
-    zeta1 = np.linspace(0,zetaT,zetaN, dtype=np.float64)
-    zeta2 = np.linspace(zetaT,2*zetaT,zetaN, dtype=np.float64)
-    zeta = np.concatenate([zeta1,zeta2[1:]])
-    tau = np.arange(0,2*np.pi,delTau, dtype=np.float64)
-    s = np.arange(delS,1,delS, dtype=np.float64)
+    z1 = np.linspace(0, H1, zN, dtype=np.float64)
+    z2 = np.linspace(H1, 2*H1, zN, dtype=np.float64)
+    z = np.concatenate([z1, z2[1:]])
+    t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
+    s = np.arange(delS, 1, delS, dtype=np.float64)
 
-    psi, u, w, bq, bw = integrate_piecewise_N(xi,zeta,tau,s,alpha,L,R,zetaT,
-                                              zetaN, heat_right=heat_right)
-    modes=2
+    psi, u, w = integrate_piecewise_N(
+        x, z, t, s, alpha, L, N, H1, zN, A, heat_right=heat_right)
+    modes = 2
 
-    ds = xr.Dataset({'psi':(('mode','tau','zeta','xi'),psi),
-                     'u':(('mode','tau','zeta','xi'),u),
-                     'w':(('mode','tau','zeta','xi'),w),
-                     'bq':(('tau','zeta','xi'),bq),
-                     'bw':(('mode','tau','zeta','xi'),bw)},
-                    {'mode': np.arange(1,modes+1), 'tau': tau,
-                    'zeta':zeta, 'xi':xi},
-                    {'U':U, 'L':L})
+    ds = xr.Dataset({
+        'psi': (('mode', 't', 'z', 'x'), psi),
+        'u': (('mode', 't', 'z', 'x'), u),
+        'w': (('mode', 't', 'z', 'x'), w),
+        # 'bq': (('t', 'z', 'x'), bq),
+        # 'bw': (('mode', 't', 'z', 'x'), bw)
+        },
+        {
+            'mode': np.arange(1, modes+1), 't': t,
+            'z': z, 'x': x},
+        {'L': L})
 
-    print('Saving')
-    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau', 'bq', 'bw']:
+    print('Saving.')
+    for var in ['psi', 'u', 'w', 'x', 'z', 't']:
         ds[var].attrs['units'] = '-'
 
     if save:
-        ds.to_netcdf('../datasets/qian_{}.nc'.format(get_current_dt_str()),
-                     encoding={'psi':{'zlib':True, 'complevel':9},
-                               'u':{'zlib':True, 'complevel':9},
-                               'w':{'zlib':True, 'complevel':9}})
-
+        ds.to_netcdf(
+            '../datasets/qian_{}.nc'.format(get_current_dt_str()),
+            encoding={
+                'psi': {'zlib': True, 'complevel': 9},
+                'u': {'zlib': True, 'complevel': 9},
+                'w': {'zlib': True, 'complevel': 9}
+                })
     return ds
 
 
@@ -428,6 +432,7 @@ def get_current_dt_str():
     dt=dt.replace("-", "")
     return dt
 
+
 def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
 
     init_fonts()
@@ -442,36 +447,38 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
     varMax = np.max(ds[var])
     if signed:
         varInc = varMax/10
-        levels = np.arange(-varMax,varMax+varInc,varInc)
+        levels = np.arange(-varMax, varMax+varInc, varInc)
     else:
         varInc = (varMax-varMin)/10
-        levels = np.arange(varMin,varMax+varInc,varInc)
+        levels = np.arange(varMin, varMax+varInc, varInc)
 
     try:
-        if ds.xi.attrs['units'] == 'm':
-            x = ds.xi/1000
-            z = ds.zeta/1000
+        if ds.x.attrs['units'] == 'm':
+            x = ds.x/1000
+            z = ds.z/1000
             plt.xlabel('Distance [km]')
             plt.ylabel('Height [km]')
         else:
-            x = ds.xi
-            z = ds.zeta
-            plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
-            plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
+            x = ds.x
+            z = ds.z
+            plt.xlabel('Distance [' + ds.x.attrs['units'] + ']')
+            plt.ylabel('Height [' + ds.z.attrs['units'] + ']')
     except:
         for var in ds.keys():
             ds[var].attrs['units'] = '?'
 
-
-    contourPlot=plt.contourf(x, z, ds[var].isel(tau=t),
-                            levels=levels, cmap=cmap)
+    contourPlot = plt.contourf(
+        x, z, ds[var].isel(t=t),
+        levels=levels, cmap=cmap)
 
     cbar = plt.colorbar(contourPlot)
     cbar.set_label('[' + ds[var].attrs['units'] + ']')
     plt.title(var + ' [' + ds[var].attrs['units'] + ']')
+    fig.patch.set_facecolor('white')
 
     if save:
-        outFile='./../figures/{}_'.format(var) + get_current_dt_str() + '.png'
+        outFile = './../figures/{}_'.format(var)
+        outFile += get_current_dt_str() + '.png'
         fig.savefig(outFile, dpi=100, writer='imagemagick')
 
     return fig, ax, contourPlot, levels, x, z
@@ -488,14 +495,15 @@ def animateCont(ds, var='psi', cmap='RdBu_r'):
         # Update the line and the axes (with a new xlabel). Return a tuple of
         # "artists" that have to be redrawn for this frame.
         contourPlot = ax.contourf(
-            x, z, ds[var].isel(tau=i), levels=levels, cmap=cmap)
+            x, z, ds[var].isel(t=i), levels=levels, cmap=cmap)
         return contourPlot, ax
 
     anim = FuncAnimation(
-        fig, update, frames=np.arange(0, np.size(ds.tau)), interval=200)
+        fig, update, frames=np.arange(0, np.size(ds.t)), interval=200)
 
     outFile = './../figures/{}_'.format(var) + get_current_dt_str() + '.gif'
     anim.save(outFile, dpi=200, writer='imagemagick')
+
 
 def plotVelocity(ds, t=0, save=False):
 
