@@ -491,7 +491,7 @@ def animateCont(ds, var='psi', cmap='RdBu_r'):
 
     def update(i):
         label = 'Timestep {0}'.format(i)
-        print(label, )
+        print(label)
         # Update the line and the axes (with a new xlabel). Return a tuple of
         # "artists" that have to be redrawn for this frame.
         contourPlot = ax.contourf(
@@ -518,41 +518,43 @@ def plotVelocity(ds, t=0, save=False):
     fig, ax = plt.subplots()
 
     ds['speed']=(ds.u**2+ds.w**2)**(1/2)
-    speedMax=np.ceil(np.amax(ds.speed))
+    speedMax=np.ceil(np.amax(ds.speed)*20)/20
     speedInc=speedMax/20
-    levels=np.arange(0,speedMax,speedInc)
+    levels=np.arange(0, speedMax+speedInc, speedInc)
 
-    if ds.xi.attrs['units'] == 'm':
-        x = ds.xi/1000
-        z = ds.zeta/1000
+    if ds.x.attrs['units'] == 'm':
+        x = ds.x/1000
+        z = ds.z/1000
         plt.xlabel('Distance [km]')
         plt.ylabel('Height [km]')
     else:
-        x = ds.xi
-        z = ds.zeta
-        plt.xlabel('Distance [' + ds.xi.attrs['units'] + ']')
-        plt.ylabel('Height [' + ds.zeta.attrs['units'] + ']')
+        x = ds.x
+        z = ds.z
+        plt.xlabel('Distance [' + ds.x.attrs['units'] + ']')
+        plt.ylabel('Height [' + ds.z.attrs['units'] + ']')
 
 
-    contourPlot=ax.contourf(x, z, ds.speed.isel(tau=t),
+    contourPlot=ax.contourf(x, z, ds.speed.isel(t=t),
                             cmap='Reds', levels=levels)
 
-    skip=int(np.floor(np.size(ds.xi)/12))
+    skip=int(np.floor(np.size(ds.x)/24))
 
     sQ=int(np.ceil(skip/2))
-    dxi=x[1]-x[0]
+    dx=x[1]-x[0]
     uQ = ds.u[:,sQ::skip,sQ::skip]
     wQ = ds.w[:,sQ::skip,sQ::skip]
     speedMaxQ=np.amax((uQ**2 + wQ**2)**(1/2)).values
-    scale=(speedMaxQ/(skip*dxi)).values
+    scale=(speedMaxQ/(skip*dx)).values
 
     ax.quiver(x[sQ::skip], z[sQ::skip],
-              uQ.isel(tau=t), wQ.isel(tau=t),
+              uQ.isel(t=t), wQ.isel(t=t),
               units='xy', angles='xy', scale=scale)
 
     plt.title('Velocity [' + ds.u.attrs['units'] + ']')
     cbar=plt.colorbar(contourPlot)
     cbar.set_label('Speed  [' + ds.u.attrs['units'] + ']')
+
+    fig.patch.set_facecolor('white')
 
     if save:
         outFile='./../figures/velocity_' + get_current_dt_str() + '.png'
@@ -560,30 +562,31 @@ def plotVelocity(ds, t=0, save=False):
 
     return ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z, uQ, wQ
 
+
 def animateVelocity(ds):
 
     plt.ioff()
     init_fonts()
 
-    ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z, uQ, wQ = plotVelocity(ds,t=0)
+    ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z, uQ, wQ = plotVelocity(ds, t=0)
 
     def update(i):
         label = 'Timestep {0}'.format(i)
         print(label)
         ax.collections = []
-        contourPlot=ax.contourf(x, z, ds.speed.isel(tau=i),
-                                cmap='Reds', levels=levels)
+        contourPlot = ax.contourf(
+            x, z, ds.speed.isel(t=i), cmap='Reds', levels=levels)
 
         ax.quiver(x[sQ::skip], z[sQ::skip],
-                  uQ.isel(tau=i), wQ.isel(tau=i),
+                  uQ.isel(t=i), wQ.isel(t=i),
                   units='xy', angles='xy', scale=scale)
 
         return contourPlot, ax
 
-    anim = FuncAnimation(fig, update, frames=np.arange(0, np.size(ds.tau)),
+    anim = FuncAnimation(fig, update, frames=np.arange(0, np.size(ds.t)),
                          interval=200)
 
     outFile='./../figures/velocity_' + get_current_dt_str() + '.gif'
-    anim.save(outFile, dpi=100, writer='imagemagick')
+    anim.save(outFile, dpi=200, writer='imagemagick')
 
     plt.close("all")

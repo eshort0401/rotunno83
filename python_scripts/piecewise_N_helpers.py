@@ -34,7 +34,7 @@ def integrate_piecewise_N(
     print('Integrating lower sub-domain.')
 
     # Perform numerical integration 0<z<=H1
-    for j in prange(1, zN):
+    for j in prange(0, zN):
         # print('Integrating height level ' + j + ' of ' + z.size + '.')
         for i in range(x.size):
             for l in range(t.size):
@@ -165,6 +165,18 @@ def calc_u_terms_lower(x, z, t, k, L, N, H1, A):
     term_3 = -1/m*1/(np.cos(m*H1)-1j*N*np.sin(m*H1))*(-np.exp(-H1)/(1j*m*N-1))
     term_3 = term_3*m*np.cos(m*z)
 
+    # REFERENCE
+    # term_1 = -1/(m*P)*(-np.exp(-z)*(np.sin(m*z)+m*np.cos(m*z))+m)/(m**2+1)
+    # term_1 = term_1*(f1*np.exp(1j*m*z)+f2*np.exp(-1j*m*z))
+    #
+    # term_2 = (
+    #     - 1/(m*P)*f1/(1j*m-1)*(np.exp((1j*m-1)*H1)-np.exp((1j*m-1)*z))
+    #     - 1/(m*P)*f2/(-1j*m-1)*(np.exp((-1j*m-1)*H1)-np.exp((-1j*m-1)*z)))
+    # term_2 = term_2 * np.sin(m*z)
+    #
+    # term_3 = -1/m*1/(np.cos(m*H1)-1j*N*np.sin(m*H1))*(-np.exp(-H1)/(1j*m*N-1))
+    # term_3 = term_3*np.sin(m*z)
+
     return term_1, term_2, term_3
 
 
@@ -181,11 +193,11 @@ def calc_u_terms_upper(x, z, t, k, L, N, H1, A):
     term_1 = -1/(m*P)*1j*m*N*np.exp(1j*m*N*z)
     term_1 = term_1*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
 
-    term_2_a = 1/(-1j*m*N-1)*(-np.exp(-z)-np.exp(1j*m*N*(z-H1)-H1))/(1j*m*N)
+    term_2_a = 1/(-1j*m*N-1)*(-np.exp(-z)-np.exp(1j*m*N*(z-H1)-H1)*(1j*m*N))
     term_2_b = - (g1/g2)*np.exp(-2*1j*m*N*H1)/(1j*m*N-1)
     term_2_b = term_2_b*(
-        np.exp((2*1j*m*N-1)*z)/(2*1j*m*N)
-        - np.exp(1j*m*N*(z+H1)-H1)/(1j*m*N))
+        np.exp((2*1j*m*N-1)*z)*(2*1j*m*N-1)
+        - np.exp(1j*m*N*(z+H1)-H1)*(1j*m*N))
     term_2 = (term_2_a+term_2_b)/(2*1j*m*N)
 
     term_3_a = 1/(2*1j*N)*(
@@ -197,6 +209,18 @@ def calc_u_terms_upper(x, z, t, k, L, N, H1, A):
     term_3_b = -term_3_b/(m*g2)/(1j*m*N-1)*(-np.exp((1j*m*N-1)*z-1j*m*N*H1))
     term_3_b = term_3_b*(1j*m*N-1)
     term_3 = term_3_a + term_3_b
+
+    # REFERENCE
+    # term_1 = -1/(m*P)*np.exp(1j*m*N*z)
+    # term_1 = term_1*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
+    #
+    # term_2_a = 1/(-1j*m*N-1)*(np.exp((-1j*m*N-1)*z)-np.exp((-1j*m*N-1)*H1))
+    # term_2_b = - (g1/g2)*np.exp(-2*1j*m*N*H1)/(1j*m*N-1)
+    # term_2_b = term_2_b*(np.exp((1j*m*N-1)*z)-np.exp((1j*m*N-1)*H1))
+    # term_2 = (term_2_a+term_2_b)*np.exp(1j*m*N*z)/(2*1j*m*N)
+    #
+    # term_3 = 1/(2*1j*N)*(g1*np.exp(1j*m*N*(z-H1))-g2*np.exp(-1j*m*N*(z-H1)))
+    # term_3 = -term_3/(m*g2)/(1j*m*N-1)*(-np.exp((1j*m*N-1)*z-1j*m*N*H1))
 
     return term_1, term_2, term_3
 
