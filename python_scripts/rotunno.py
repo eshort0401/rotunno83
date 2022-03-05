@@ -187,7 +187,7 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
 
 def solve_piecewise_N(
         xN=241, zN=121, tN=32, sN=2000, alpha=2,
-        L=0.1, N=2, H1=4, A=1, heat_right=True, save=True):
+        L=0.1, N=2, H1=4, A=1, heat_right=True, save=True, lim=False):
 
     print('Initialising.')
 
@@ -196,16 +196,16 @@ def solve_piecewise_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-20, 20, xN, dtype=np.float64)
+    x = np.linspace(-10, 10, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     z2 = np.linspace(H1, 2*H1, zN, dtype=np.float64)
     z = np.concatenate([z1, z2[1:]])
-    t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
+    t = np.arange(0, np.pi, del_t, dtype=np.float64)
     s = np.arange(delS, 1, delS, dtype=np.float64)
 
     psi, u, w = integrate_piecewise_N(
-        x, z, t, s, alpha, L, N, H1, zN, A, heat_right=heat_right)
+        x, z, t, s, alpha, L, N, H1, zN, A, lim=lim)
     modes = 2
 
     ds = xr.Dataset({
@@ -445,9 +445,12 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
 
     varMin = np.min(ds[var])
     varMax = np.max(ds[var])
+
+    abs_max = np.max([np.abs(varMin), np.abs(varMax)])
+
     if signed:
-        varInc = varMax/10
-        levels = np.arange(-varMax, varMax+varInc, varInc)
+        varInc = abs_max/10
+        levels = np.arange(-abs_max, abs_max+varInc, varInc)
     else:
         varInc = (varMax-varMin)/10
         levels = np.arange(varMin, varMax+varInc, varInc)
@@ -537,7 +540,7 @@ def plotVelocity(ds, t=0, save=False):
     contourPlot=ax.contourf(x, z, ds.speed.isel(t=t),
                             cmap='Reds', levels=levels)
 
-    skip=int(np.floor(np.size(ds.x)/24))
+    skip=int(np.floor(np.size(ds.x)/12))
 
     sQ=int(np.ceil(skip/2))
     dx=x[1]-x[0]
