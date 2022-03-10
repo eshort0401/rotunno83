@@ -187,7 +187,7 @@ def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
 
 def solve_piecewise_N(
         xN=241, zN=121, tN=32, sN=2000, alpha=2,
-        L=0.1, N=2, H1=4, A=1, heat_right=True, save=True, lim=False):
+        L=0.1, N=2, H1=4, A=1, heat_right=True, save=True):
 
     print('Initialising.')
 
@@ -196,16 +196,16 @@ def solve_piecewise_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-10, 10, xN, dtype=np.float64)
+    x = np.linspace(-15, 15, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     z2 = np.linspace(H1, 2*H1, zN, dtype=np.float64)
     z = np.concatenate([z1, z2[1:]])
-    t = np.arange(0, np.pi, del_t, dtype=np.float64)
+    t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
     s = np.arange(delS, 1, delS, dtype=np.float64)
 
     psi, u, w = integrate_piecewise_N(
-        x, z, t, s, alpha, L, N, H1, zN, A, lim=lim)
+        x, z, t, s, alpha, L, N, H1, zN, A)
     modes = 2
 
     ds = xr.Dataset({
@@ -235,53 +235,56 @@ def solve_piecewise_N(
     return ds
 
 
-def solve_continuous_N(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=2,
-                       L=0.1, R=0.4, zetaT1=5, zetaT2=10, heat_right=True,
-                       save=True):
+def solve_continuous_N(
+        xN=241, zN=121, tN=32, sN=2000, alpha=2,
+        L=1, N=2, H1=5, H2=6, A=1, heat_right=True, save=True):
 
     print('Initialising')
 
-    U=0
-
     # Time interval
-    delTau = 2*np.pi/tauN
+    del_t = 2*np.pi/tN
     delS = 1/sN
-    delZeta = 4/zetaN
 
     # Initialise domains
-    xi = np.linspace(-60,60,xiN, dtype=np.float64)
+    x = np.linspace(-15, 15, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
-    zeta1 = np.linspace(0,zetaT1,zetaN, dtype=np.float64)
-    zeta2 = np.linspace(zetaT1,zetaT2,zetaN+1, dtype=np.float64)
-    zeta3 = np.linspace(zetaT2,1.5*zetaT2,zetaN+1, dtype=np.float64)
-    zeta = np.concatenate([zeta1,zeta2[1:],zeta3[1:]])
-    tau = np.arange(0,2*np.pi,delTau, dtype=np.float64)
-    s = np.arange(delS,1,delS, dtype=np.float64)
+    z1 = np.linspace(0, H1, zN, dtype=np.float64)
+    zN_scaled = int(2+np.ceil(zN*(H2-H1)/H1))
+    z2 = np.linspace(H1, H2, zN_scaled+1, dtype=np.float64)
+    z3 = np.linspace(H2, H2+H1, zN+1)
+    z = np.concatenate([z1, z2[1:], z3[1:]])
 
-    psi, u, w, bq, bw = integrate_continuous_N(xi,zeta,tau,s,alpha,L,R,
-                                               zetaT1, zetaT2, zetaN,
-                                               heat_right=heat_right)
-    modes=2
+    t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
+    s = np.arange(delS, 1, delS, dtype=np.float64)
 
-    ds = xr.Dataset({'psi':(('mode','tau','zeta','xi'),psi),
-                     'u':(('mode','tau','zeta','xi'),u),
-                     'w':(('mode','tau','zeta','xi'),w),
-                     'bq':(('tau','zeta','xi'),bq),
-                     'bw':(('mode','tau','zeta','xi'),bw)},
-                    {'mode': np.arange(1,modes+1), 'tau': tau,
-                    'zeta':zeta, 'xi':xi},
-                    {'U':U, 'L':L})
+    psi, u, w = integrate_continuous_N(
+        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A)
+    modes = 2
 
-    print('Saving')
-    for var in ['psi', 'u', 'w', 'xi', 'zeta', 'tau', 'bq', 'bw']:
+    ds = xr.Dataset({
+        'psi': (('mode', 't', 'z', 'x'), psi),
+        'u': (('mode', 't', 'z', 'x'), u),
+        'w': (('mode', 't', 'z', 'x'), w),
+        # 'bq': (('t', 'z', 'x'), bq),
+        # 'bw': (('mode', 't', 'z', 'x'), bw)
+        },
+        {
+            'mode': np.arange(1, modes+1), 't': t,
+            'z': z, 'x': x},
+        {'L': L})
+
+    print('Saving.')
+    for var in ['psi', 'u', 'w', 'x', 'z', 't']:
         ds[var].attrs['units'] = '-'
 
     if save:
-        ds.to_netcdf('../datasets/qian_{}.nc'.format(get_current_dt_str()),
-                     encoding={'psi':{'zlib':True, 'complevel':9},
-                               'u':{'zlib':True, 'complevel':9},
-                               'w':{'zlib':True, 'complevel':9}})
-
+        ds.to_netcdf(
+            '../datasets/qian_{}.nc'.format(get_current_dt_str()),
+            encoding={
+                'psi': {'zlib': True, 'complevel': 9},
+                'u': {'zlib': True, 'complevel': 9},
+                'w': {'zlib': True, 'complevel': 9}
+                })
     return ds
 
 
@@ -336,9 +339,9 @@ def solve_channel(xiN=41, zetaN=21, tauN=32, sN=1000, alpha=3,
 
 def assign_units(ds):
 
-    ds.xi.attrs['units'] = 'm'
-    ds.zeta.attrs['units'] = 'm'
-    ds.tau.attrs['units'] = 's'
+    ds.x.attrs['units'] = 'm'
+    ds.z.attrs['units'] = 'm'
+    ds.t.attrs['units'] = 's'
     ds.u.attrs['units'] = 'm/s'
     ds.w.attrs['units'] = 'm/s'
     ds.psi.attrs['units'] = 'm^2/s'
@@ -373,19 +376,21 @@ def redimensionalise_rotunno(ds, h=500,
 
     return ds
 
-def redimensionalise_qian(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
+
+def redimensionalise_qian(
+        ds, h=500, N=0.035, Q0=9.807*(3/300)/(12*3600)):
 
     omega = 2*np.pi/(24*3600)
-    ds = ds.assign_coords(xi = ds.xi*N*h/omega)
-    ds = ds.assign_coords(zeta = ds.zeta*h)
-    ds = ds.assign_coords(tau = ds.tau/omega)
+    ds = ds.assign_coords(x=ds.x*N*h/omega)
+    ds = ds.assign_coords(z=ds.z*h)
+    ds = ds.assign_coords(t=ds.t/omega)
     ds['u'] = ds.u*Q0/(N*omega)
     ds['w'] = ds.w*Q0/(N**2)
     ds['psi'] = ds.psi*h*Q0/(N*omega)
-    ds['bq'] = ds.bq*Q0/omega
-    ds['bw'] = ds.bw*Q0/omega
+    # ds['bq'] = ds.bq*Q0/omega
+    # ds['bw'] = ds.bw*Q0/omega
     ds.attrs['L'] = ds.attrs['L']*N*h/omega
-    ds.attrs['U'] = ds.attrs['U']*N*h
+    # ds.attrs['U'] = ds.attrs['U']*N*h
     ds.attrs['Q0'] = Q0
     ds.attrs['h'] = h
     ds.attrs['N'] = N
@@ -393,6 +398,7 @@ def redimensionalise_qian(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
     ds = assign_units(ds)
 
     return ds
+
 
 def redimensionalise_channel(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
 
