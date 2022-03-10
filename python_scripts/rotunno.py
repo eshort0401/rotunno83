@@ -22,6 +22,7 @@ from channel_helpers import integrate_channel, integrate_channel_U0
 from piecewise_N_helpers import integrate_piecewise_N
 from continuous_N_helpers import integrate_continuous_N
 
+
 def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
                             latitude=-10, h=500):
 
@@ -199,7 +200,7 @@ def solve_piecewise_N(
     x = np.linspace(-15, 15, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
-    z2 = np.linspace(H1, 2*H1, zN, dtype=np.float64)
+    z2 = np.linspace(H1, 1.5*H1, zN, dtype=np.float64)
     z = np.concatenate([z1, z2[1:]])
     t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
     s = np.arange(delS, 1, delS, dtype=np.float64)
@@ -249,9 +250,9 @@ def solve_continuous_N(
     x = np.linspace(-15, 15, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
-    zN_scaled = int(2+np.ceil(zN*(H2-H1)/H1))
+    zN_scaled = int(10+np.ceil(zN*(H2-H1)/H1))
     z2 = np.linspace(H1, H2, zN_scaled+1, dtype=np.float64)
-    z3 = np.linspace(H2, H2+H1, zN+1)
+    z3 = np.linspace(H2, H2+.5*H1, int(np.floor(zN/2))+1)
     z = np.concatenate([z1, z2[1:], z3[1:]])
 
     t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)

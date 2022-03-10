@@ -20,8 +20,6 @@ def integrate_continuous_N(
     u = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
     w = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
 
-    zN_scaled = int(2+np.ceil(zN*(H2-H1)/H1))
-
     # Define alternative domains
     theta_p = calc_theta_p(s, alpha=alpha)
 
