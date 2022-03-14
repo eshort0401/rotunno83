@@ -250,7 +250,7 @@ def solve_continuous_N(
     x = np.linspace(-15, 15, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
-    zN_scaled = int(10+np.ceil(zN*(H2-H1)/H1))
+    zN_scaled = int(np.floor(zN*(H2-H1)/H1))
     z2 = np.linspace(H1, H2, zN_scaled+1, dtype=np.float64)
     z3 = np.linspace(H2, H2+.5*H1, int(np.floor(zN/2))+1)
     z = np.concatenate([z1, z2[1:], z3[1:]])

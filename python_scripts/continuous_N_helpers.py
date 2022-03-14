@@ -59,7 +59,7 @@ def integrate_continuous_N(
             u_base_1, u_base_2, x, t)
 
     print('Integrating middle sub-domain')
-    for j in prange(zN, zN+zN_scaled):
+    for j in prange(zN, zN+zN_scaled-1):
         psi_base_1 = calc_psi_base_middle(
             z[j], k, N, H1, H2, A0,
             X_p, Y_p, beta_p, Da_2, Db_2)*np.exp(-L*k)/(2*A0**2)
@@ -80,7 +80,7 @@ def integrate_continuous_N(
     #
     print('Integrating upper sub-domain.')
     # Perform numerical integration H1<z
-    for j in prange(zN+zN_scaled, z.size):
+    for j in prange(zN+zN_scaled-1, z.size):
         psi_base_1 = calc_psi_base_upper(
             z[j], k, N, H1, H2, A0, X_p, Y_p)*np.exp(-L*k)/(2*A0**2)
         psi_base_2 = calc_psi_base_upper(
@@ -119,10 +119,10 @@ def calc_coefficients(k, N, H1, H2, A0):
     f_2 = calc_f(H2, k, N, H1, G, A0)
 
     # pcfd = np.frompyfunc(mpmath.pcfd, 2, 1)
-    Da_1 = pcfd(-1/2, (1+1j)*f_1).astype(complex)
-    Da_2 = pcfd(-1/2, (1+1j)*f_2).astype(complex)
-    Db_1 = pcfd(-1/2, (1-1j)*f_1).astype(complex)
-    Db_2 = pcfd(-1/2, (1-1j)*f_2).astype(complex)
+    Da_1 = np.array(pcfd(-1/2, (1+1j)*f_1)).astype(complex)
+    Da_2 = np.array(pcfd(-1/2, (1+1j)*f_2)).astype(complex)
+    Db_1 = np.array(pcfd(-1/2, (1-1j)*f_1)).astype(complex)
+    Db_2 = np.array(pcfd(-1/2, (1-1j)*f_2)).astype(complex)
 
     beta_p = (1j*m*N+alpha_2+dA_2/A_2)/(2*alpha_2)
 
@@ -190,7 +190,9 @@ def calc_theta_A(z, k, N, H1, G, A0):
     im = (
         besselj(-1/4, f**2/2)*np.sin(f**2/2)
         - besselj(1/4, f**2/2)*np.sin(f**2/2+np.pi/4))
-    theta = np.arctan((im/re).astype(float))
+    re = np.array(re).astype(float)
+    im = np.array(re).astype(float)
+    theta = np.arctan(im/re)
     A = np.sqrt(np.pi*f/2)*np.sqrt(re**2+im**2).astype(float)
 
     return theta, A
@@ -217,7 +219,7 @@ def calc_dtheta(z, k, N, H1, G, A0):
     dtheta = num/den
     dtheta = dtheta*np.sqrt(m*G)
 
-    return dtheta.astype(float)
+    return np.array(dtheta).astype(float)
 
 
 # @jit(nopython=False)
@@ -242,7 +244,7 @@ def calc_dA(z, k, N, H1, G, A0):
     dA = num/den**(1/2)
     dA = dA*np.sqrt(m*G)
 
-    return dA.astype(float)
+    return np.array(dA).astype(float)
 
 
 # @jit(nopython=True)
