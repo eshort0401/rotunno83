@@ -14,7 +14,7 @@ besselj = np.frompyfunc(mpmath.besselj, 2, 1)
 
 # @jit(parallel=True, nopython=True)
 def integrate_continuous_N(
-        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A0):
+        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A0, high_lim=True):
 
     psi = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
     u = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
@@ -32,14 +32,60 @@ def integrate_continuous_N(
     # Create wavenumber domain
     k = np.concatenate((k_2[-1::-1], np.array([2*np.pi]), k_3))
 
-    print('Calculating Coefficients')
-    X_p, Y_p, beta_p, X_n, Y_n, beta_n, Da_2, Db_2 = calc_coefficients(
-        k, N, H1, H2, A0)
+    print('Pre-calculating Coefficients')
 
-    # T = 1/2*((np.sin(m*H1)-gamma)*(Da_2/Da_1)+gamma*(Db_2/Db_1))
-    # S = 1/(2*1j*m*N)*(
-    #     (np.sin(m*H1)-gamma)*(Da_2/Da_1)*(-alpha_2+dA_2/A_2)
-    #     + gamma*(Db_2/Db_1)*(alpha_2+dA_2/A_2))
+    G = (N-1)/(H2-H1)
+    theta_1, A_1 = calc_theta_A(H1, k, N, H1, G, A0)
+    dA_1 = calc_dA(H1, k, N, H1, G, A0)
+    alpha_1 = calc_alpha(H1, k, N, H1, G, A0)
+
+    theta_2, A_2 = calc_theta_A(H2, k, N, H1, G, A0)
+    dA_2 = calc_dA(H2, k, N, H1, G, A0)
+    alpha_2 = calc_alpha(H2, k, N, H1, G, A0)
+
+    m = k/A0
+
+    f_1 = calc_f(H1, k, N, H1, G, A0)
+    f_2 = calc_f(H2, k, N, H1, G, A0)
+
+    # pcfd = np.frompyfunc(mpmath.pcfd, 2, 1)
+    Da_1 = np.array(pcfd(-1/2, (1+1j)*f_1)).astype(complex)
+    Da_2 = np.array(pcfd(-1/2, (1+1j)*f_2)).astype(complex)
+    Db_1 = np.array(pcfd(-1/2, (1-1j)*f_1)).astype(complex)
+    Db_2 = np.array(pcfd(-1/2, (1-1j)*f_2)).astype(complex)
+
+    beta_p = (1j*m*N+alpha_2+dA_2/A_2)/(2*alpha_2)
+
+    X_p = 1/2*((1-beta_p)*(Da_1/Da_2)+beta_p*(Db_1/Db_2))
+    Y_p = 1j/(2*m)*(
+        (1-beta_p)*(Da_1/Da_2)*(-alpha_1+dA_1/A_1)
+        + beta_p*(Db_1/Db_2)*(alpha_1+dA_1/A_1))
+
+    gamma_p = (m*np.cos(m*H1)+np.sin(m*H1)*(dA_1/A_1+alpha_1))/(2*alpha_1)
+    mu_p = gamma_p*(1-beta_p)*Db_2*Da_1-(np.sin(m*H1)-gamma_p)*Da_2*Db_1
+    # Coefficients for z<z' integral
+    Ca_p_1 = -Da_2*Db_1*Da_1*beta_p/(2*mu_p)
+    Cb_p_1 = -Db_2*Db_1*Da_1*(1-beta_p)/(2*mu_p)
+    # Coefficients for z>z' integral
+    Ca_p_2 = -Da_1*Da_2*Db_2*gamma_p/(2*mu_p)
+    Cb_p_2 = -Db_1*Da_2*Db_2*(np.sin(m*H1)-gamma_p)/(2*mu_p)
+
+    T_p = 1/2*((np.sin(m*H1)-gamma_p)*(Da_2/Da_1)+gamma_p*(Db_2/Db_1))
+    S_p = 1/(2*1j*m*N)*(
+        (np.sin(m*H1)-gamma_p)*(Da_2/Da_1)*(-alpha_2+dA_2/A_2)
+        + gamma_p*(Db_2/Db_1)*(alpha_2+dA_2/A_2))
+
+    beta_n = (-1j*m*N+alpha_2+dA_2/A_2)/(2*alpha_2)
+
+    X_n = 1/2*((1-beta_n)*(Da_1/Da_2)+beta_n*(Db_1/Db_2))
+    Y_n = 1j/(2*m)*(
+        (1-beta_n)*(Da_1/Da_2)*(-alpha_1+dA_1/A_1)
+        + beta_n*(Db_1/Db_2)*(alpha_1+dA_1/A_1))
+
+    print('Pre-calculating middle sub-domain forcing integrals.')
+    if not high_lim:
+        low_a, low_b, high_a, high_b = calc_mid_forcing_integrands(
+            H1, H2, k, N, L, z, zN, zN_scaled, A0=1)
 
     print('Beginning integration.')
     print('Integrating lower sub-domain.')
@@ -47,7 +93,9 @@ def integrate_continuous_N(
     # Perform numerical integration 0<z<=H1
     for j in range(0, zN):
         psi_base_1 = calc_psi_base_lower(
-            z[j], k, N, H1, A0, X_p, Y_p)*np.exp(-L*k)/(2*A0**2)
+            z[j], k, N, H1, A0, X_p, Y_p,
+            low_a[-1, :], low_b[-1, :], Ca_p_1, Cb_p_1, S_p, T_p)
+        psi_base_1 = psi_base_1*np.exp(-L*k)/(2*A0**2)
         psi_base_2 = calc_psi_base_lower(
             z[j], k, N, H1, A0, X_n, Y_n)*np.exp(-L*k)/(2*A0**2)
         u_base_1 = calc_u_base_lower(
@@ -60,9 +108,16 @@ def integrate_continuous_N(
 
     print('Integrating middle sub-domain')
     for j in prange(zN, zN+zN_scaled-1):
+        low_a_j = low_a[j-zN+1, :]
+        low_b_j = low_b[j-zN+1, :]
+        high_a_j = high_a[j-zN+1, :]
+        high_b_j = high_b[j-zN+1, :]
         psi_base_1 = calc_psi_base_middle(
             z[j], k, N, H1, H2, A0,
-            X_p, Y_p, beta_p, Da_2, Db_2)*np.exp(-L*k)/(2*A0**2)
+            X_p, Y_p, beta_p, Da_2, Db_2,
+            Ca_p_1, Cb_p_1, low_a_j, low_b_j,
+            Ca_p_2, Cb_p_2, high_a_j, high_b_j)
+        psi_base_1 = psi_base_1*np.exp(-L*k)/(2*A0**2)
         psi_base_2 = calc_psi_base_middle(
             z[j], k, N, H1, H2, A0,
             X_n, Y_n, beta_n, Da_2, Db_2)*np.exp(-L*k)/(2*A0**2)
@@ -102,43 +157,42 @@ def integrate_continuous_N(
     return psi, u, w
 
 
-def calc_coefficients(k, N, H1, H2, A0):
+def calc_mid_forcing_integrands(
+        H1, H2, k, N, L, z, zN, zN_scaled, A0=1, grain=2):
+
     G = (N-1)/(H2-H1)
-    theta_1, A_1 = calc_theta_A(H1, k, N, H1, G, A0)
-    dA_1 = calc_dA(H1, k, N, H1, G, A0)
-    alpha_1 = calc_alpha(H1, k, N, H1, G, A0)
 
-    theta_2, A_2 = calc_theta_A(H2, k, N, H1, G, A0)
-    dA_2 = calc_dA(H2, k, N, H1, G, A0)
-    alpha_2 = calc_alpha(H2, k, N, H1, G, A0)
+    z_mid = z[zN-1:zN+zN_scaled]
 
-    m = k/A0
-    # gamma = (m*np.cos(m*H1)+np.sin(m*H1)*(dA_1/A_1+alpha_1))/(2*alpha_1)
+    dz = (z_mid[-1]-z_mid[0])/(len(z_mid)-1)
+    dzp = dz/grain
+    zp_mid = np.arange(z_mid[0], z_mid[-1]+dzp, dzp)
 
-    f_1 = calc_f(H1, k, N, H1, G, A0)
-    f_2 = calc_f(H2, k, N, H1, G, A0)
+    Zp, K = np.meshgrid(zp_mid, k)
+    M = K/A0
 
-    # pcfd = np.frompyfunc(mpmath.pcfd, 2, 1)
-    Da_1 = np.array(pcfd(-1/2, (1+1j)*f_1)).astype(complex)
-    Da_2 = np.array(pcfd(-1/2, (1+1j)*f_2)).astype(complex)
-    Db_1 = np.array(pcfd(-1/2, (1-1j)*f_1)).astype(complex)
-    Db_2 = np.array(pcfd(-1/2, (1-1j)*f_2)).astype(complex)
+    f = np.sqrt(M/G)*(1+G*(Zp-H1))
 
-    beta_p = (1j*m*N+alpha_2+dA_2/A_2)/(2*alpha_2)
+    dtheta = calc_dtheta(Zp, K, N, H1, G, A0)
 
-    X_p = 1/2*((1-beta_p)*(Da_1/Da_2)+beta_p*(Db_1/Db_2))
-    Y_p = 1j/(2*m)*(
-        (1-beta_p)*(Da_1/Da_2)*(-alpha_1+dA_1/A_1)
-        + beta_p*(Db_1/Db_2)*(alpha_1+dA_1/A_1))
+    alpha = 1j*M*(1+G*(Zp-H1)) - 1j*dtheta
 
-    beta_n = (-1j*m*N+alpha_2+dA_2/A_2)/(2*alpha_2)
+    Ia = np.exp(-Zp)/(pcfd(-1/2, (1+1j)*f)*alpha).astype(complex)
+    Ib = np.exp(-Zp)/(pcfd(-1/2, (1-1j)*f)*alpha).astype(complex)
 
-    X_n = 1/2*((1-beta_n)*(Da_1/Da_2)+beta_n*(Db_1/Db_2))
-    Y_n = 1j/(2*m)*(
-        (1-beta_n)*(Da_1/Da_2)*(-alpha_1+dA_1/A_1)
-        + beta_n*(Db_1/Db_2)*(alpha_1+dA_1/A_1))
+    low_a = np.zeros([len(z_mid), len(k)]).astype(complex)
+    low_b = np.zeros([len(z_mid), len(k)]).astype(complex)
+    high_a = np.zeros([len(z_mid), len(k)]).astype(complex)
+    high_b = np.zeros([len(z_mid), len(k)]).astype(complex)
 
-    return X_p, Y_p, beta_p, X_n, Y_n, beta_n, Da_2, Db_2
+    for i in range(0, len(z_mid)):
+        ind = (i+1)*grain
+        low_a[i] = np.trapz(Ia[:, :ind+1], zp_mid[:ind+1], axis=1)
+        low_b[i] = np.trapz(Ib[:, :ind+1], zp_mid[:ind+1], axis=1)
+        high_a[i] = np.trapz(Ia[:, ind:], zp_mid[ind:], axis=1)
+        high_b[i] = np.trapz(Ib[:, ind:], zp_mid[ind:], axis=1)
+
+    return low_a, low_b, high_a, high_b
 
 
 @jit(parallel=True, nopython=True)
@@ -248,7 +302,8 @@ def calc_dA(z, k, N, H1, G, A0):
 
 
 # @jit(nopython=True)
-def calc_psi_base_lower(z, k, N, H1, A0, X, Y):
+def calc_psi_base_lower(
+        z, k, N, H1, H2, A0, X, Y, Fa, Fb, Ca, Cb, S, T, high_lim=True):
     m = k/A0
 
     P = (X-Y)*np.exp(-1j*m*H1)+(X+Y)*np.exp(1j*m*H1)
@@ -263,15 +318,22 @@ def calc_psi_base_lower(z, k, N, H1, A0, X, Y):
         + B2/(-1j*m-1)*(np.exp((-1j*m-1)*H1)-np.exp((-1j*m-1)*z)))
     term_2 = -1/m*np.sin(m*z)*term_2
 
-    # term_3 = -1/m*1/g2*(-np.exp(-H1)/(1j*m*N-1))
-    # term_3 = term_3*np.sin(m*z)
+    if high_lim:
+        term_3 = 0
+        term_4 = 0
+    else:
+        term_3 = Ca*Fa+Cb*Fb
+        term_3 = term_3*np.sin(m*z)
 
-    return term_1+term_2
+        term_4 = 1/(2*1j*m*N*(T-S))*1/(1j*m*N-1)*(-np.exp(-H2))*np.sin(m*z)
+
+    return term_1+term_2+term_3+term_4
 
 
 # @jit(nopython=True)
 def calc_psi_base_middle(
-        z, k, N, H1, H2, A0, X, Y, beta, Da_2, Db_2):
+        z, k, N, H1, H2, A0, X, Y, beta, Da_2, Db_2
+        Ca_p_1, Cb_p_1, Ca_p_2, Cb_p_2,):
     m = k/A0
     G = (N-1)/(H2-H1)
 
@@ -288,13 +350,15 @@ def calc_psi_base_middle(
     term_1 = -1/m*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
     term_1 = term_1*(B1*Da_z/Da_2+B2*Db_z/Db_2)
 
-    # term_2 = (
-    #     B1/(1j*m-1)*(np.exp((1j*m-1)*H1)-np.exp((1j*m-1)*z))
-    #     + B2/(-1j*m-1)*(np.exp((-1j*m-1)*H1)-np.exp((-1j*m-1)*z)))
-    # term_2 = -1/m*np.sin(m*z)*term_2
+    if high_lim:
+        term_2 = 0
+        term_3 = 0
+        term_4 = 0
+    else:
+        term_2 = Ca_p_2*
 
-    # term_3 = -1/m*1/g2*(-np.exp(-H1)/(1j*m*N-1))
-    # term_3 = term_3*np.sin(m*z)
+
+
 
     return term_1
 
