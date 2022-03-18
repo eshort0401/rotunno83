@@ -14,7 +14,7 @@ besselj = np.frompyfunc(mpmath.besselj, 2, 1)
 
 # @jit(parallel=True, nopython=True)
 def integrate_continuous_N(
-        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A0, high_lim=True):
+        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A0, high_lim=False):
 
     psi = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
     u = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
@@ -62,13 +62,7 @@ def integrate_continuous_N(
         + beta_p*(Db_1/Db_2)*(alpha_1+dA_1/A_1))
 
     gamma_p = (m*np.cos(m*H1)+np.sin(m*H1)*(dA_1/A_1+alpha_1))/(2*alpha_1)
-    mu_p = gamma_p*(1-beta_p)*Db_2*Da_1-(np.sin(m*H1)-gamma_p)*Da_2*Db_1
-    # Coefficients for z<z' integral
-    Ca_p_1 = -Da_2*Db_1*Da_1*beta_p/(2*mu_p)
-    Cb_p_1 = -Db_2*Db_1*Da_1*(1-beta_p)/(2*mu_p)
-    # Coefficients for z>z' integral
-    Ca_p_2 = -Da_1*Da_2*Db_2*gamma_p/(2*mu_p)
-    Cb_p_2 = -Db_1*Da_2*Db_2*(np.sin(m*H1)-gamma_p)/(2*mu_p)
+    mu_p = gamma_p*(1-beta_p)*Db_2*Da_1-(np.sin(m*H1)-gamma_p)*beta_p*Da_2*Db_1
 
     T_p = 1/2*((np.sin(m*H1)-gamma_p)*(Da_2/Da_1)+gamma_p*(Db_2/Db_1))
     S_p = 1/(2*1j*m*N)*(
@@ -86,69 +80,124 @@ def integrate_continuous_N(
     if not high_lim:
         low_a, low_b, high_a, high_b = calc_mid_forcing_integrands(
             H1, H2, k, N, L, z, zN, zN_scaled, A0=1)
+    else:
+        z_mid = z[zN-1:zN+zN_scaled]
+
+        low_a = np.zeros([len(z_mid), len(k)]).astype(complex)
+        low_b = np.zeros([len(z_mid), len(k)]).astype(complex)
+        high_a = np.zeros([len(z_mid), len(k)]).astype(complex)
+        high_b = np.zeros([len(z_mid), len(k)]).astype(complex)
 
     print('Beginning integration.')
     print('Integrating lower sub-domain.')
 
+    # Calculate the B coefficient from middle subdomain
+    B_p_low = -Da_2*Db_1*Da_1*beta_p/(2*mu_p)*high_a[0, :]
+    B_p_low = B_p_low-Db_2*Db_1*Da_1*(1-beta_p)/(2*mu_p)*high_b[0, :]
+
     # Perform numerical integration 0<z<=H1
     for j in range(0, zN):
-        psi_base_1 = calc_psi_base_lower(
-            z[j], k, N, H1, A0, X_p, Y_p,
-            low_a[-1, :], low_b[-1, :], Ca_p_1, Cb_p_1, S_p, T_p)
-        psi_base_1 = psi_base_1*np.exp(-L*k)/(2*A0**2)
-        psi_base_2 = calc_psi_base_lower(
-            z[j], k, N, H1, A0, X_n, Y_n)*np.exp(-L*k)/(2*A0**2)
-        u_base_1 = calc_u_base_lower(
-            z[j], k, N, H1, A0, X_p, Y_p)*np.exp(-L*k)/(2*A0**2)
-        u_base_2 = calc_u_base_lower(
-            z[j], k, N, H1, A0, X_n, Y_n)*np.exp(-L*k)/(2*A0**2)
+
+        psi_base_1_lf, psi_base_1_mf, psi_base_1_hf = calc_psi_base_lower(
+            z[j], k, N, H1, H2, A0, X_p, Y_p, S_p, T_p, B_p_low,
+            high_lim=high_lim)
+        psi_base_2_lf, psi_base_2_mf, psi_base_2_hf = calc_psi_base_lower(
+            z[j], k, N, H1, H2, A0, X_n, Y_n, S_p, T_p, B_p_low)
+        u_base_1_lf, u_base_1_mf, u_base_1_hf = calc_u_base_lower(
+            z[j], k, N, H1, A0, X_p, Y_p)
+        u_base_2_lf, u_base_2_mf, u_base_2_hf = calc_u_base_lower(
+            z[j], k, N, H1, A0, X_n, Y_n)
+
+        base_fns = [
+            psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
+            psi_base_2_lf, psi_base_2_mf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_mf, u_base_1_hf,
+            u_base_2_lf, u_base_2_mf, u_base_2_hf]
+        base_fns = [fn*np.exp(-L*k)/(2*A0**2) for fn in base_fns]
+
         psi, u, w = loop(
-            psi, u, w, k, j, psi_base_1, psi_base_2,
-            u_base_1, u_base_2, x, t)
+            psi, u, w, k, j,
+            psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
+            psi_base_2_lf, psi_base_2_mf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_mf, u_base_1_hf,
+            u_base_2_lf, u_base_2_mf, u_base_2_hf,
+            x, t)
 
     print('Integrating middle sub-domain')
-    for j in prange(zN, zN+zN_scaled-1):
-        low_a_j = low_a[j-zN+1, :]
-        low_b_j = low_b[j-zN+1, :]
-        high_a_j = high_a[j-zN+1, :]
-        high_b_j = high_b[j-zN+1, :]
-        psi_base_1 = calc_psi_base_middle(
+    for j in range(zN, zN+zN_scaled-1):
+
+        D_p_j_a = -Da_1*Da_2*Db_2*gamma_p/(2*mu_p)*low_a[j-zN+1, :]
+        D_p_j_b = -Db_1*Da_2*Db_2*(np.sin(m*H1)-gamma_p)/(2*mu_p)
+        D_p_j_b = D_p_j_b*low_b[j-zN+1, :]
+        D_p_j = D_p_j_a + D_p_j_b
+
+        B_p_j = -Da_2*Db_1*Da_1*beta_p/(2*mu_p)*high_a[j-zN+1, :]
+        B_p_j = B_p_j-Db_2*Db_1*Da_1*(1-beta_p)/(2*mu_p)*high_b[j-zN+1, :]
+
+        psi_base_1_lf, psi_base_1_mf, psi_base_1_hf = calc_psi_base_middle(
+            z[j], k, N, H1, H2, A0, X_p, Y_p, beta_p,
+            gamma_p, B_p_j, D_p_j, S_p, T_p,
+            Da_1, Db_1, Da_2, Db_2, high_lim=high_lim)
+        psi_base_2_lf, psi_base_2_mf, psi_base_2_hf = calc_psi_base_middle(
+            z[j], k, N, H1, H2, A0, X_n, Y_n, beta_n,
+            gamma_p, B_p_j, D_p_j, S_p, T_p,
+            Da_1, Db_1, Da_2, Db_2)
+        u_base_1_lf, u_base_1_mf, u_base_1_hf = calc_u_base_middle(
             z[j], k, N, H1, H2, A0,
-            X_p, Y_p, beta_p, Da_2, Db_2,
-            Ca_p_1, Cb_p_1, low_a_j, low_b_j,
-            Ca_p_2, Cb_p_2, high_a_j, high_b_j)
-        psi_base_1 = psi_base_1*np.exp(-L*k)/(2*A0**2)
-        psi_base_2 = calc_psi_base_middle(
+            X_p, Y_p, beta_p, Da_2, Db_2)
+        u_base_2_lf, u_base_2_mf, u_base_2_hf = calc_u_base_middle(
             z[j], k, N, H1, H2, A0,
-            X_n, Y_n, beta_n, Da_2, Db_2)*np.exp(-L*k)/(2*A0**2)
-        u_base_1 = calc_u_base_middle(
-            z[j], k, N, H1, H2, A0,
-            X_p, Y_p, beta_p, Da_2, Db_2)*np.exp(-L*k)/(2*A0**2)
-        u_base_2 = calc_u_base_middle(
-            z[j], k, N, H1, H2, A0,
-            X_n, Y_n, beta_n, Da_2, Db_2)*np.exp(-L*k)/(2*A0**2)
+            X_n, Y_n, beta_n, Da_2, Db_2)
+
+        base_fns = [
+            psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
+            psi_base_2_lf, psi_base_2_mf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_mf, u_base_1_hf,
+            u_base_2_lf, u_base_2_mf, u_base_2_hf]
+        base_fns = [fn*np.exp(-L*k)/(2*A0**2) for fn in base_fns]
 
         psi, u, w = loop(
-            psi, u, w, k, j, psi_base_1, psi_base_2,
-            u_base_1, u_base_2, x, t)
+            psi, u, w, k, j,
+            psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
+            psi_base_2_lf, psi_base_2_mf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_mf, u_base_1_hf,
+            u_base_2_lf, u_base_2_mf, u_base_2_hf,
+            x, t)
 
-    #
     print('Integrating upper sub-domain.')
     # Perform numerical integration H1<z
-    for j in prange(zN+zN_scaled-1, z.size):
-        psi_base_1 = calc_psi_base_upper(
-            z[j], k, N, H1, H2, A0, X_p, Y_p)*np.exp(-L*k)/(2*A0**2)
-        psi_base_2 = calc_psi_base_upper(
-            z[j], k, N, H1, H2, A0,
-            X_n, Y_n, mode='neg')*np.exp(-L*k)/(2*A0**2)
-        u_base_1 = calc_u_base_upper(
-            z[j], k, N, H1, H2, A0, X_p, Y_p)*np.exp(-L*k)/(2*A0**2)
-        u_base_2 = calc_u_base_upper(
-            z[j], k, N, H1, H2, A0,
-            X_n, Y_n, mode='neg')*np.exp(-L*k)/(2*A0**2)
+
+    D_p_high_a = -Da_1*Da_2*Db_2*gamma_p/(2*mu_p)*low_a[-1, :]
+    D_p_high_b = -Db_1*Da_2*Db_2*(np.sin(m*H1)-gamma_p)/(2*mu_p)
+    D_p_high_b = D_p_high_b*low_b[-1, :]
+    D_p_high = D_p_high_a + D_p_high_b
+
+    for j in range(zN+zN_scaled-1, z.size):
+        psi_base_1_lf, psi_base_1_mf, psi_base_1_hf = calc_psi_base_upper(
+            z[j], k, N, H1, H2, A0, X_p, Y_p, S_p, T_p,
+            beta_p, gamma_p, D_p_high, high_lim=high_lim)
+        psi_base_2_lf, psi_base_2_mf, psi_base_2_hf = calc_psi_base_upper(
+            z[j], k, N, H1, H2, A0, X_n, Y_n, S_p, T_p,
+            beta_p, gamma_p, D_p_high, mode='neg')
+        u_base_1_lf, u_base_1_mf, u_base_1_hf = calc_u_base_upper(
+            z[j], k, N, H1, H2, A0, X_p, Y_p)
+        u_base_2_lf, u_base_2_mf, u_base_2_hf = calc_u_base_upper(
+            z[j], k, N, H1, H2, A0, X_n, Y_n, mode='neg')
+
+        base_fns = [
+            psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
+            psi_base_2_lf, psi_base_2_mf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_mf, u_base_1_hf,
+            u_base_2_lf, u_base_2_mf, u_base_2_hf]
+        base_fns = [fn*np.exp(-L*k)/(2*A0**2) for fn in base_fns]
+
         psi, u, w = loop(
-            psi, u, w, k, j, psi_base_1, psi_base_2,
-            u_base_1, u_base_2, x, t)
+            psi, u, w, k, j,
+            psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
+            psi_base_2_lf, psi_base_2_mf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_mf, u_base_1_hf,
+            u_base_2_lf, u_base_2_mf, u_base_2_hf,
+            x, t)
 
     psi = (1/np.pi)*np.real(psi)
     u = (1/np.pi)*np.real(u)
@@ -158,7 +207,7 @@ def integrate_continuous_N(
 
 
 def calc_mid_forcing_integrands(
-        H1, H2, k, N, L, z, zN, zN_scaled, A0=1, grain=2):
+        H1, H2, k, N, L, z, zN, zN_scaled, A0=1, grain=3):
 
     G = (N-1)/(H2-H1)
 
@@ -186,7 +235,7 @@ def calc_mid_forcing_integrands(
     high_b = np.zeros([len(z_mid), len(k)]).astype(complex)
 
     for i in range(0, len(z_mid)):
-        ind = (i+1)*grain
+        ind = i*grain
         low_a[i] = np.trapz(Ia[:, :ind+1], zp_mid[:ind+1], axis=1)
         low_b[i] = np.trapz(Ib[:, :ind+1], zp_mid[:ind+1], axis=1)
         high_a[i] = np.trapz(Ia[:, ind:], zp_mid[ind:], axis=1)
@@ -303,7 +352,7 @@ def calc_dA(z, k, N, H1, G, A0):
 
 # @jit(nopython=True)
 def calc_psi_base_lower(
-        z, k, N, H1, H2, A0, X, Y, Fa, Fb, Ca, Cb, S, T, high_lim=True):
+        z, k, N, H1, H2, A0, X, Y, S, T, B, high_lim=True):
     m = k/A0
 
     P = (X-Y)*np.exp(-1j*m*H1)+(X+Y)*np.exp(1j*m*H1)
@@ -318,13 +367,10 @@ def calc_psi_base_lower(
         + B2/(-1j*m-1)*(np.exp((-1j*m-1)*H1)-np.exp((-1j*m-1)*z)))
     term_2 = -1/m*np.sin(m*z)*term_2
 
-    if high_lim:
-        term_3 = 0
-        term_4 = 0
-    else:
-        term_3 = Ca*Fa+Cb*Fb
-        term_3 = term_3*np.sin(m*z)
-
+    term_3 = 0
+    term_4 = 0
+    if not high_lim:
+        term_3 = B*np.sin(m*z)
         term_4 = 1/(2*1j*m*N*(T-S))*1/(1j*m*N-1)*(-np.exp(-H2))*np.sin(m*z)
 
     return term_1+term_2+term_3+term_4
@@ -332,8 +378,8 @@ def calc_psi_base_lower(
 
 # @jit(nopython=True)
 def calc_psi_base_middle(
-        z, k, N, H1, H2, A0, X, Y, beta, Da_2, Db_2
-        Ca_p_1, Cb_p_1, Ca_p_2, Cb_p_2,):
+        z, k, N, H1, H2, A0, X, Y, beta, gamma, B, D, S, T,
+        Da_1, Db_1, Da_2, Db_2, high_lim=True):
     m = k/A0
     G = (N-1)/(H2-H1)
 
@@ -350,22 +396,23 @@ def calc_psi_base_middle(
     term_1 = -1/m*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
     term_1 = term_1*(B1*Da_z/Da_2+B2*Db_z/Db_2)
 
-    if high_lim:
-        term_2 = 0
-        term_3 = 0
-        term_4 = 0
-    else:
-        term_2 = Ca_p_2*
+    term_2 = 0
+    term_3 = 0
+    term_4 = 0
+    if not high_lim:
+        term_2 = D*((1-beta)*Da_z/Da_2+beta*Db_z/Db_2)
+        term_3 = B*((np.sin(m*H1)-gamma)*Da_z/Da_1+gamma*Db_z/Db_1)
+        term_4 = 1/(2*1j*m*N*(T-S))*1/(1j*m*N-1)*(-np.exp(-H2))
+        term_4 = term_4*((np.sin(m*H1)-gamma)*Da_z/Da_1+gamma*Db_z/Db_1)
 
-
-
-
-    return term_1
+    return term_1+term_2+term_3+term_4
 
 
 # positive t mode, upper subdomain
 # @jit(nopython=True)
-def calc_psi_base_upper(z, k, N, H1, H2, A0, X, Y, mode='pos'):
+def calc_psi_base_upper(
+        z, k, N, H1, H2, A0, X, Y, S, T, beta, gamma, D,
+        mode='pos', high_lim=True):
 
     m = k/A0
 
@@ -376,16 +423,26 @@ def calc_psi_base_upper(z, k, N, H1, H2, A0, X, Y, mode='pos'):
     else:
         term_1 = -1/(m*P)*np.exp(-1j*m*N*(z-H2))
     term_1 = term_1*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
-    #
-    # term_2_a = 1/(-1j*m*N-1)*(np.exp((-1j*m*N-1)*z)-np.exp((-1j*m*N-1)*H1))
-    # term_2_b = - (g1/g2)*np.exp(-2*1j*m*N*H1)/(1j*m*N-1)
-    # term_2_b = term_2_b*(np.exp((1j*m*N-1)*z)-np.exp((1j*m*N-1)*H1))
-    # term_2 = (term_2_a+term_2_b)*np.exp(1j*m*N*z)/(2*1j*m*N)
-    #
-    # term_3 = 1/(2*1j*N)*(g1*np.exp(1j*m*N*(z-H1))-g2*np.exp(-1j*m*N*(z-H1)))
-    # term_3 = -term_3/(m*g2)/(1j*m*N-1)*(-np.exp((1j*m*N-1)*z-1j*m*N*H1))
 
-    return term_1 #term_2+term_3
+    term_2 = 0
+    term_3 = 0
+    term_4 = 0
+    if not high_lim:
+        if mode == 'pos':
+            term_2 = D*np.exp(1j*m*N*(z-H2))
+        else:
+            term_2 = D*np.exp(-1j*m*N*(z-H2))
+
+        term_3_a = 1/(-1j*m*N-1)*(np.exp(-1j*m*N*(z-H2)-z)-np.exp(-H2))
+        term_3_b = 1/(1j*m*N-1)*(np.exp(1j*m*N*(z-H2)-z)-np.exp(-H2))
+        term_3 = term_3_a+(T+S)/(T-S)*term_3_b
+        term_3 = term_3*np.exp(1j*m*N*(z-H2))
+
+        term_4 = ((T+S)*np.exp(1j*m*N*(z-H2))+(T-S)*np.exp(-1j*m*N*(z-H2)))
+        term_4 = term_4*1/(2*1j*m*N*(T-S))*1/(1j*m*N-1)
+        term_4 = term_4*(-np.exp(1j*m*N*(z-H2)-z))
+
+    return term_1+term_2+term_3+term_4
 
 
 # @jit(nopython=True)

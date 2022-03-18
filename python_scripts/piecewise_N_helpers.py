@@ -8,13 +8,13 @@ from numba import jit, prange
 import numpy as np
 
 
-@jit(parallel=True, nopython=False)
+# @jit(parallel=True, nopython=False)
 def integrate_piecewise_N(
         x, z, t, s, alpha, L, N, H1, zN, A):
 
-    psi = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
-    u = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
-    w = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
+    psi = np.zeros((2, 2, t.size, z.size, x.size), dtype=np.complex64)
+    u = np.zeros((2, 2, t.size, z.size, x.size), dtype=np.complex64)
+    w = np.zeros((2, 2, t.size, z.size, x.size), dtype=np.complex64)
     # bq = np.zeros((t.size, z.size, x.size), dtype=np.complex64)
     # bw = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
 
@@ -34,65 +34,48 @@ def integrate_piecewise_N(
     print('Integrating lower sub-domain.')
 
     # Perform numerical integration 0<z<=H1
-    for j in prange(0, zN):
+    for j in range(0, zN):
 
-        psi_base_1 = calc_psi_base_lower(
-            z[j], k, L, N, H1, A)*np.exp(-L*k)/(2*A**2)
-        psi_base_2 = calc_psi_base_lower(
-            z[j], -k, L, N, H1, A)*np.exp(-L*k)/(2*A**2)
-        u_base_1 = calc_u_base_lower(
-            z[j], k, L, N, H1, A)*np.exp(-L*k)/(2*A**2)
-        u_base_2 = calc_u_base_lower(
-            z[j], -k, L, N, H1, A)*np.exp(-L*k)/(2*A**2)
+        psi_base_1_lf, psi_base_1_hf = calc_psi_base_lower(
+            z[j], k, L, N, H1, A)
+        psi_base_2_lf, psi_base_2_hf = calc_psi_base_lower(
+            z[j], -k, L, N, H1, A)
+        u_base_1_lf, u_base_1_hf = calc_u_base_lower(
+            z[j], k, L, N, H1, A)
+        u_base_2_lf, u_base_2_hf = calc_u_base_lower(
+            z[j], -k, L, N, H1, A)
+        base_fns = [
+            psi_base_1_lf, psi_base_1_hf, psi_base_2_lf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf]
+        base_fns = [fn*np.exp(-L*k)/(2*A**2) for fn in base_fns]
 
-        for i in range(x.size):
-            for l in range(t.size):
-
-                psi1_ig = psi_base_1*np.exp(1j*(k*x[i]+t[l]))
-                psi2_ig = psi_base_2*np.exp(1j*(k*x[i]-t[l]))
-                psi[0][l, j, i] = np.trapz(psi1_ig, k)
-                psi[1][l, j, i] = np.trapz(psi2_ig, k)
-
-                # # Calc u
-                u1_ig = u_base_1*np.exp(1j*(k*x[i]+t[l]))
-                u2_ig = u_base_2*np.exp(1j*(k*x[i]-t[l]))
-                u[0][l, j, i] = np.trapz(u1_ig, k)
-                u[1][l, j, i] = np.trapz(u2_ig, k)
-
-                # Calc w
-                w[0][l, j, i] = np.trapz(psi1_ig*1j*k, k)
-                w[1][l, j, i] = np.trapz(psi2_ig*1j*k, k)
+        psi, u, w = loop(
+            psi, u, w, k, j,
+            psi_base_1_lf, psi_base_1_hf, psi_base_2_lf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf, x, t)
 
     print('Integrating upper sub-domain.')
     # Perform numerical integration H1<z
-    for j in prange(zN, z.size):
+    for j in range(zN, z.size):
 
-        psi_base_1 = calc_psi_base_upper(
-            z[j], k, L, N, H1, A)*np.exp(-L*k)/(2*A**2)
-        psi_base_2 = calc_psi_base_upper(
-            z[j], -k, L, N, H1, A)*np.exp(-L*k)/(2*A**2)
-        u_base_1 = calc_u_base_upper(
-            z[j], k, L, N, H1, A)*np.exp(-L*k)/(2*A**2)
-        u_base_2 = calc_u_base_upper(
-            z[j], -k, L, N, H1, A)*np.exp(-L*k)/(2*A**2)
+        psi_base_1_lf, psi_base_1_hf = calc_psi_base_upper(
+            z[j], k, L, N, H1, A)
+        psi_base_2_lf, psi_base_2_hf = calc_psi_base_upper(
+            z[j], -k, L, N, H1, A)
+        u_base_1_lf, u_base_1_hf = calc_u_base_upper(
+            z[j], k, L, N, H1, A)
+        u_base_2_lf, u_base_2_hf = calc_u_base_upper(
+            z[j], -k, L, N, H1, A)
 
-        for i in range(x.size):
-            for l in range(t.size):
+        base_fns = [
+            psi_base_1_lf, psi_base_1_hf, psi_base_2_lf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf]
+        base_fns = [fn*np.exp(-L*k)/(2*A**2) for fn in base_fns]
 
-                psi1_ig = psi_base_1*np.exp(1j*(k*x[i]+t[l]))
-                psi2_ig = psi_base_2*np.exp(1j*(k*x[i]-t[l]))
-                psi[0][l, j, i] = np.trapz(psi1_ig, k)
-                psi[1][l, j, i] = np.trapz(psi2_ig, k)
-
-                # # Calc u
-                u1_ig = u_base_1*np.exp(1j*(k*x[i]+t[l]))
-                u2_ig = u_base_2*np.exp(1j*(k*x[i]-t[l]))
-                u[0][l, j, i] = np.trapz(u1_ig, k)
-                u[1][l, j, i] = np.trapz(u2_ig, k)
-
-                # Calc w
-                w[0][l, j, i] = np.trapz(psi1_ig*1j*k, k)
-                w[1][l, j, i] = np.trapz(psi2_ig*1j*k, k)
+        psi, u, w = loop(
+            psi, u, w, k, j,
+            psi_base_1_lf, psi_base_1_hf, psi_base_2_lf, psi_base_2_hf,
+            u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf, x, t)
 
     psi = (1/np.pi)*np.real(psi)
     u = (1/np.pi)*np.real(u)
@@ -101,6 +84,42 @@ def integrate_piecewise_N(
     # bw = (1/np.pi)*np.real(bw)
 
     # return psi, u, w, bq, bw
+    return psi, u, w
+
+
+@jit(nopython=True)
+def loop(
+        psi, u, w, k, j,
+        psi_base_1_lf, psi_base_1_hf, psi_base_2_lf, psi_base_2_hf,
+        u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf, x, t):
+
+    pos_fns = [psi_base_1_lf, psi_base_1_hf, u_base_1_lf, u_base_1_hf]
+    neg_fns = [psi_base_2_lf, psi_base_2_hf, u_base_2_lf, u_base_2_hf]
+
+    for i in range(x.size):
+        for l in range(t.size):
+
+            [psi1_ig_lf, psi1_ig_hf, u1_ig_lf, u1_ig_hf] = [
+                fn*np.exp(1j*(k*x[i]+t[l])) for fn in pos_fns]
+            [psi2_ig_lf, psi2_ig_hf, u2_ig_lf, u2_ig_hf] = [
+                fn*np.exp(1j*(k*x[i]-t[l])) for fn in neg_fns]
+
+            psi[0][0][l, j, i] = np.trapz(psi1_ig_lf, k)
+            psi[1][0][l, j, i] = np.trapz(psi2_ig_lf, k)
+            psi[0][1][l, j, i] = np.trapz(psi1_ig_hf, k)
+            psi[1][1][l, j, i] = np.trapz(psi2_ig_hf, k)
+
+            # Calc u
+            u[0][0][l, j, i] = np.trapz(u1_ig_lf, k)
+            u[1][0][l, j, i] = np.trapz(u2_ig_lf, k)
+            u[0][1][l, j, i] = np.trapz(u1_ig_hf, k)
+            u[1][1][l, j, i] = np.trapz(u2_ig_hf, k)
+
+            # Calc w
+            w[0][0][l, j, i] = np.trapz(psi1_ig_lf*1j*k, k)
+            w[1][0][l, j, i] = np.trapz(psi2_ig_lf*1j*k, k)
+            w[0][1][l, j, i] = np.trapz(psi1_ig_hf*1j*k, k)
+            w[1][1][l, j, i] = np.trapz(psi2_ig_hf*1j*k, k)
     return psi, u, w
 
 
@@ -124,7 +143,8 @@ def calc_psi_base_lower(z, k, L, N, H1, A):
     term_3 = -1/m*1/g2*(-np.exp(-H1)/(1j*m*N-1))
     term_3 = term_3*np.sin(m*z)
 
-    return term_1+term_2+term_3
+    return (term_1+term_2), term_3
+    # return term_3
 
 
 # positive t mode, upper subdomain
@@ -149,7 +169,8 @@ def calc_psi_base_upper(z, k, L, N, H1, A):
     term_3 = 1/(2*1j*N)*(g1*np.exp(1j*m*N*(z-H1))-g2*np.exp(-1j*m*N*(z-H1)))
     term_3 = -term_3/(m*g2)/(1j*m*N-1)*(-np.exp((1j*m*N-1)*z-1j*m*N*H1))
 
-    return term_1+term_2+term_3
+    return term_1, (term_2+term_3)
+    # return term_2+term_3
 
 
 @jit(nopython=True)
@@ -180,7 +201,7 @@ def calc_u_base_lower(z, k, L, N, H1, A):
     term_3 = -1/m*1/(np.cos(m*H1)-1j*N*np.sin(m*H1))*(-np.exp(-H1)/(1j*m*N-1))
     term_3 = term_3*m*np.cos(m*z)
 
-    return term_1+term_2+term_3
+    return (term_1+term_2), term_3
 
 
 # positive t mode, upper subdomain
@@ -212,7 +233,7 @@ def calc_u_base_upper(z, k, L, N, H1, A):
     term_3_b = term_3_b*(1j*m*N-1)
     term_3 = term_3_a + term_3_b
 
-    return term_1+term_2+term_3
+    return term_1, (term_2+term_3)
 
 
 @jit(nopython=True)

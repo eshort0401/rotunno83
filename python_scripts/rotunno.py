@@ -200,7 +200,7 @@ def solve_piecewise_N(
     x = np.linspace(-5, 5, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
-    z2 = np.linspace(H1, 1.5*H1, zN, dtype=np.float64)
+    z2 = np.linspace(H1, 2*H1, zN, dtype=np.float64)
     z = np.concatenate([z1, z2[1:]])
     t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
     s = np.arange(delS, 1, delS, dtype=np.float64)
@@ -210,14 +210,14 @@ def solve_piecewise_N(
     modes = 2
 
     ds = xr.Dataset({
-        'psi': (('mode', 't', 'z', 'x'), psi),
-        'u': (('mode', 't', 'z', 'x'), u),
-        'w': (('mode', 't', 'z', 'x'), w),
+        'psi': (('mode', 'forcing', 't', 'z', 'x'), psi),
+        'u': (('mode', 'forcing', 't', 'z', 'x'), u),
+        'w': (('mode', 'forcing', 't', 'z', 'x'), w),
         # 'bq': (('t', 'z', 'x'), bq),
         # 'bw': (('mode', 't', 'z', 'x'), bw)
         },
         {
-            'mode': np.arange(1, modes+1), 't': t,
+            'mode': np.arange(1, modes+1), 'forcing': np.arange(1, 3), 't': t,
             'z': z, 'x': x},
         {'L': L})
 
@@ -238,7 +238,7 @@ def solve_piecewise_N(
 
 def solve_continuous_N(
         xN=241, zN=121, tN=32, sN=2000, alpha=2,
-        L=1, N=2, H1=5, H2=6, A=1, heat_right=True, save=True):
+        L=1, N=2, H1=5, H2=6, A=1, heat_right=True, save=True, high_lim=False):
 
     print('Initialising')
 
@@ -247,30 +247,28 @@ def solve_continuous_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-15, 15, xN, dtype=np.float64)
+    x = np.linspace(-5, 5, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     zN_scaled = int(np.floor(zN*(H2-H1)/H1))
     z2 = np.linspace(H1, H2, zN_scaled+1, dtype=np.float64)
-    z3 = np.linspace(H2, H2+.5*H1, int(np.floor(zN/2))+1)
+    z3 = np.linspace(H2, H2+H1, zN)
     z = np.concatenate([z1, z2[1:], z3[1:]])
 
     t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
     s = np.arange(delS, 1, delS, dtype=np.float64)
 
     psi, u, w = integrate_continuous_N(
-        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A)
+        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A, high_lim=high_lim)
     modes = 2
 
     ds = xr.Dataset({
-        'psi': (('mode', 't', 'z', 'x'), psi),
-        'u': (('mode', 't', 'z', 'x'), u),
-        'w': (('mode', 't', 'z', 'x'), w),
-        # 'bq': (('t', 'z', 'x'), bq),
-        # 'bw': (('mode', 't', 'z', 'x'), bw)
+        'psi': (('mode', 'forcing', 't', 'z', 'x'), psi),
+        'u': (('mode', 'forcing', 't', 'z', 'x'), u),
+        'w': (('mode', 'forcing', 't', 'z', 'x'), w),
         },
         {
-            'mode': np.arange(1, modes+1), 't': t,
+            'mode': np.arange(1, modes+1), 'forcing': np.arange(1, 4), 't': t,
             'z': z, 'x': x},
         {'L': L})
 
