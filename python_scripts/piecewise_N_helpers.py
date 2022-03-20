@@ -51,8 +51,8 @@ def integrate_piecewise_N(
 
         psi, u, w = loop(
             psi, u, w, k, j,
-            psi_base_1_lf, psi_base_1_hf, psi_base_2_lf, psi_base_2_hf,
-            u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf, x, t)
+            base_fns[0], base_fns[1], base_fns[2], base_fns[3],
+            base_fns[4], base_fns[5], base_fns[6], base_fns[7], x, t)
 
     print('Integrating upper sub-domain.')
     # Perform numerical integration H1<z
@@ -74,16 +74,13 @@ def integrate_piecewise_N(
 
         psi, u, w = loop(
             psi, u, w, k, j,
-            psi_base_1_lf, psi_base_1_hf, psi_base_2_lf, psi_base_2_hf,
-            u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf, x, t)
+            base_fns[0], base_fns[1], base_fns[2], base_fns[3],
+            base_fns[4], base_fns[5], base_fns[6], base_fns[7], x, t)
 
     psi = (1/np.pi)*np.real(psi)
     u = (1/np.pi)*np.real(u)
     w = -(1/np.pi)*np.real(w)
-    # bq = np.real(bq)
-    # bw = (1/np.pi)*np.real(bw)
 
-    # return psi, u, w, bq, bw
     return psi, u, w
 
 
