@@ -14,7 +14,7 @@ besselj = np.frompyfunc(mpmath.besselj, 2, 1)
 
 # @jit(parallel=True, nopython=True)
 def integrate_continuous_N(
-        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A0, high_lim=False):
+        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A0):
 
     psi = np.zeros((2, 3, t.size, z.size, x.size), dtype=np.complex64)
     u = np.zeros((2, 3, t.size, z.size, x.size), dtype=np.complex64)
@@ -48,13 +48,12 @@ def integrate_continuous_N(
     f_1 = calc_f(H1, k, N, H1, G, A0)
     f_2 = calc_f(H2, k, N, H1, G, A0)
 
-    # pcfd = np.frompyfunc(mpmath.pcfd, 2, 1)
     Da_1 = np.array(pcfd(-1/2, (1+1j)*f_1)).astype(complex)
     Da_2 = np.array(pcfd(-1/2, (1+1j)*f_2)).astype(complex)
     Db_1 = np.array(pcfd(-1/2, (1-1j)*f_1)).astype(complex)
     Db_2 = np.array(pcfd(-1/2, (1-1j)*f_2)).astype(complex)
 
-    gamma = (m*np.cos(m*H1)+np.sin(m*H1)*(dA_1/A_1+alpha_1))/(2*alpha_1)
+    gamma = (m*np.cos(m*H1)+np.sin(m*H1)*(-dA_1/A_1+alpha_1))/(2*alpha_1)
 
     beta_p = (1j*m*N+alpha_2+dA_2/A_2)/(2*alpha_2)
 
@@ -80,7 +79,7 @@ def integrate_continuous_N(
     mu_n = gamma*(1-beta_n)*Db_2*Da_1-(np.sin(m*H1)-gamma)*beta_n*Da_2*Db_1
 
     print('Pre-calculating middle sub-domain forcing integrals.')
-    low_a, low_b, high_a, high_b = calc_mid_forcing_integrands(
+    Ia, Ib, low_a, low_b, high_a, high_b, z_mid, zp_mid = calc_mid_forcing_integrands(
         H1, H2, k, N, L, z, zN, zN_scaled, A0=1)
 
     print('Beginning integration.')
@@ -97,15 +96,14 @@ def integrate_continuous_N(
     for j in range(0, zN):
 
         psi_base_1_lf, psi_base_1_mf, psi_base_1_hf = calc_psi_base_lower(
-            z[j], k, N, H1, H2, A0, X_p, Y_p, S, T, B_p_low,
-            high_lim=high_lim)
+            z[j], k, N, H1, H2, A0, X_p, Y_p, S, T, B_p_low)
         psi_base_2_lf, psi_base_2_mf, psi_base_2_hf = calc_psi_base_lower(
-            z[j], k, N, H1, H2, A0, X_n, Y_n, S, T, B_n_low,
-            high_lim=high_lim, mode='neg')
+            z[j], k, N, H1, H2, A0, X_n, Y_n, S, T, B_n_low, mode='neg')
         u_base_1_lf, u_base_1_mf, u_base_1_hf = calc_u_base_lower(
-            z[j], k, N, H1, A0, X_p, Y_p)
+            z[j], k, N, H1, H2, A0, X_p, Y_p, S, T, B_p_low)
         u_base_2_lf, u_base_2_mf, u_base_2_hf = calc_u_base_lower(
-            z[j], k, N, H1, A0, X_n, Y_n)
+            z[j], k, N, H1, H2, A0, X_n, Y_n, S, T,
+            B_n_low, mode='neg')
 
         base_fns = [
             psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
@@ -122,6 +120,8 @@ def integrate_continuous_N(
             base_fns[9], base_fns[10], base_fns[11],
             x, t)
 
+    # import pdb; pdb.set_trace()
+
     print('Integrating middle sub-domain')
     for j in range(zN, zN+zN_scaled-1):
 
@@ -130,31 +130,46 @@ def integrate_continuous_N(
         D_p_j_b = D_p_j_b*low_b[j-zN+1, :]
         D_p_j = D_p_j_a + D_p_j_b
 
+        dD_p_j_a = -Da_1*Da_2*Db_2*gamma/(2*mu_p)*Ia[:, j-zN+1]
+        dD_p_j_b = -Db_1*Da_2*Db_2*(np.sin(m*H1)-gamma)/(2*mu_p)
+        dD_p_j_b = dD_p_j_b*Ib[:, j-zN+1]
+        dD_p_j = dD_p_j_a + dD_p_j_b
+
         B_p_j = -Da_2*Db_1*Da_1*beta_p/(2*mu_p)*high_a[j-zN+1, :]
         B_p_j = B_p_j-Db_2*Db_1*Da_1*(1-beta_p)/(2*mu_p)*high_b[j-zN+1, :]
+
+        dB_p_j = Da_2*Db_1*Da_1*beta_p/(2*mu_p)*Ia[:, j-zN+1]
+        dB_p_j = dB_p_j+Db_2*Db_1*Da_1*(1-beta_p)/(2*mu_p)*Ib[:, j-zN+1]
 
         D_n_j_a = -Da_1*Da_2*Db_2*gamma/(2*mu_n)*low_a[j-zN+1, :]
         D_n_j_b = -Db_1*Da_2*Db_2*(np.sin(m*H1)-gamma)/(2*mu_n)
         D_n_j_b = D_n_j_b*low_b[j-zN+1, :]
         D_n_j = D_n_j_a + D_n_j_b
 
+        dD_n_j_a = -Da_1*Da_2*Db_2*gamma/(2*mu_n)*Ia[:, j-zN+1]
+        dD_n_j_b = -Db_1*Da_2*Db_2*(np.sin(m*H1)-gamma)/(2*mu_n)
+        dD_n_j_b = dD_n_j_b*Ib[:, j-zN+1]
+        dD_n_j = dD_n_j_a + dD_n_j_b
+
         B_n_j = -Da_2*Db_1*Da_1*beta_n/(2*mu_n)*high_a[j-zN+1, :]
         B_n_j = B_n_j-Db_2*Db_1*Da_1*(1-beta_n)/(2*mu_n)*high_b[j-zN+1, :]
 
+        dB_n_j = Da_2*Db_1*Da_1*beta_n/(2*mu_n)*Ia[:, j-zN+1]
+        dB_n_j = dB_n_j+Db_2*Db_1*Da_1*(1-beta_n)/(2*mu_n)*Ib[:, j-zN+1]
+
         psi_base_1_lf, psi_base_1_mf, psi_base_1_hf = calc_psi_base_middle(
             z[j], k, N, H1, H2, A0, X_p, Y_p, beta_p,
-            gamma, B_p_j, D_p_j, S, T,
-            Da_1, Db_1, Da_2, Db_2, high_lim=high_lim)
+            gamma, B_p_j, D_p_j, S, T, Da_1, Db_1, Da_2, Db_2)
         psi_base_2_lf, psi_base_2_mf, psi_base_2_hf = calc_psi_base_middle(
             z[j], k, N, H1, H2, A0, X_n, Y_n, beta_n,
-            gamma, B_n_j, D_n_j, S, T,
-            Da_1, Db_1, Da_2, Db_2, high_lim=high_lim, mode='neg')
+            gamma, B_n_j, D_n_j, S, T, Da_1, Db_1, Da_2, Db_2, mode='neg')
         u_base_1_lf, u_base_1_mf, u_base_1_hf = calc_u_base_middle(
-            z[j], k, N, H1, H2, A0,
-            X_p, Y_p, beta_p, Da_2, Db_2)
+            z[j], k, N, H1, H2, A0, X_p, Y_p, beta_p,
+            gamma, B_p_j, dB_p_j, D_p_j, dD_p_j, S, T, Da_1, Db_1, Da_2, Db_2)
         u_base_2_lf, u_base_2_mf, u_base_2_hf = calc_u_base_middle(
-            z[j], k, N, H1, H2, A0,
-            X_n, Y_n, beta_n, Da_2, Db_2)
+            z[j], k, N, H1, H2, A0, X_n, Y_n, beta_n,
+            gamma, B_n_j, dB_n_j, D_n_j, dD_n_j,
+            S, T, Da_1, Db_1, Da_2, Db_2, mode='neg')
 
         base_fns = [
             psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
@@ -187,14 +202,16 @@ def integrate_continuous_N(
     for j in range(zN+zN_scaled-1, z.size):
         psi_base_1_lf, psi_base_1_mf, psi_base_1_hf = calc_psi_base_upper(
             z[j], k, N, H1, H2, A0, X_p, Y_p, S, T,
-            beta_p, gamma, D_p_high, high_lim=high_lim)
+            beta_p, gamma, D_p_high)
         psi_base_2_lf, psi_base_2_mf, psi_base_2_hf = calc_psi_base_upper(
             z[j], k, N, H1, H2, A0, X_n, Y_n, S, T,
-            beta_n, gamma, D_n_high, mode='neg', high_lim=high_lim)
+            beta_n, gamma, D_n_high, mode='neg')
         u_base_1_lf, u_base_1_mf, u_base_1_hf = calc_u_base_upper(
-            z[j], k, N, H1, H2, A0, X_p, Y_p)
+            z[j], k, N, H1, H2, A0, X_p, Y_p, S, T,
+            beta_p, gamma, D_p_high)
         u_base_2_lf, u_base_2_mf, u_base_2_hf = calc_u_base_upper(
-            z[j], k, N, H1, H2, A0, X_n, Y_n, mode='neg')
+            z[j], k, N, H1, H2, A0, X_n, Y_n, S, T,
+            beta_n, gamma, D_n_high, mode='neg')
 
         base_fns = [
             psi_base_1_lf, psi_base_1_mf, psi_base_1_hf,
@@ -280,10 +297,8 @@ def calc_mid_forcing_integrands(
     G = (N-1)/(H2-H1)
 
     z_mid = z[zN-1:zN+zN_scaled]
-
-    dz = (z_mid[-1]-z_mid[0])/(len(z_mid)-1)
-    dzp = dz/grain
-    zp_mid = np.arange(z_mid[0], z_mid[-1]+dzp, dzp)
+    zp_mid_N = (len(z_mid)-1)*grain+1
+    zp_mid = np.linspace(z_mid[0], z_mid[-1], zp_mid_N)
 
     Zp, K = np.meshgrid(zp_mid, k)
     M = K/A0
@@ -309,7 +324,7 @@ def calc_mid_forcing_integrands(
         high_a[i] = np.trapz(Ia[:, ind:], zp_mid[ind:], axis=1)
         high_b[i] = np.trapz(Ib[:, ind:], zp_mid[ind:], axis=1)
 
-    return low_a, low_b, high_a, high_b
+    return Ia[:, ::grain], Ib[:, ::grain], low_a, low_b, high_a, high_b, z_mid, zp_mid
 
 
 # @jit(nopython=True)
@@ -414,7 +429,6 @@ def calc_psi_base_lower(
     term_3 = B*np.sin(m*z)
     if mode == 'pos':
         term_4 = 1/(2*1j*m*N*(T-S))*1/(1j*m*N-1)*(-np.exp(-H2))*np.sin(m*z)
-
     else:
         term_4 = -1/(2*1j*m*N*(T+S))*1/(-1j*m*N-1)
         term_4 = term_4*(-np.exp(-H2))*np.sin(m*z)
@@ -524,20 +538,21 @@ def calc_u_base_lower(z, k, N, H1, H2, A0, X, Y, S, T, B, mode='pos'):
 
     term_2 = term_2_a+term_2_b
 
-    term_3 = B*np.sin(m*z)
+    term_3 = B*m*np.cos(m*z)
     if mode == 'pos':
-        term_4 = 1/(2*1j*m*N*(T-S))*1/(1j*m*N-1)*(-np.exp(-H2))*np.sin(m*z)
-
+        term_4 = 1/(2*1j*N*(T-S))*1/(1j*m*N-1)*(-np.exp(-H2))*np.cos(m*z)
     else:
-        term_4 = -1/(2*1j*m*N*(T+S))*1/(-1j*m*N-1)
-        term_4 = term_4*(-np.exp(-H2))*np.sin(m*z)
+        term_4 = -1/(2*1j*N*(T+S))*1/(-1j*m*N-1)
+        term_4 = term_4*(-np.exp(-H2))*np.cos(m*z)
 
     return (term_1+term_2), term_3, term_4
 
 
 # @jit(nopython=True)
 def calc_u_base_middle(
-        z, k, N, H1, H2, A0, X, Y, beta, Da_2, Db_2):
+        z, k, N, H1, H2, A0, X, Y, beta, gamma, B, dB, D, dD, S, T,
+        Da_1, Db_1, Da_2, Db_2, mode='pos'):
+
     m = k/A0
     G = (N-1)/(H2-H1)
 
@@ -547,38 +562,65 @@ def calc_u_base_middle(
 
     f = calc_f(z, k, N, H1, G, A0)
 
-    # pcfd = np.frompyfunc(mpmath.pcfd, 2, 1)
-    dDa_z = 1/2*(1+1j)*f*pcfd(-1/2, (1+1j)*f)
-    dDa_z = dDa_z-pcfd(1/2, (1+1j)*f)
-    dDa_z = dDa_z*(1+1j)*np.sqrt(m*G)
+    Da_z = pcfd(-1/2, (1+1j)*f).astype(complex)
+    Db_z = pcfd(-1/2, (1-1j)*f).astype(complex)
+
+    dDa_z = 1j*f*Da_z
+    dDa_z = dDa_z-(1+1j)*pcfd(1/2, (1+1j)*f)
+    dDa_z = dDa_z*np.sqrt(m*G)
     dDa_z = dDa_z.astype(complex)
 
-    dDb_z = 1/2*(1-1j)*f*pcfd(-1/2, (1-1j)*f)
-    dDb_z = dDb_z-pcfd(1/2, (1-1j)*f)
-    dDb_z = dDb_z*(1-1j)*np.sqrt(m*G)
+    dDb_z = -1j*f*Db_z
+    dDb_z = dDb_z-(1-1j)*pcfd(1/2, (1-1j)*f)
+    dDb_z = dDb_z*np.sqrt(m*G)
     dDb_z = dDb_z.astype(complex)
 
     term_1 = -1/m*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
     term_1 = term_1*(B1*dDa_z/Da_2+B2*dDb_z/Db_2)
 
-    term_2 = term_1
-    term_3 = term_1
-    term_4 = term_1
+    term_2 = D*((1-beta)*dDa_z/Da_2+beta*dDb_z/Db_2)
+    term_2 = term_2 + dD*((1-beta)*Da_z/Da_2+beta*Db_z/Db_2)
+    term_3 = B*((np.sin(m*H1)-gamma)*dDa_z/Da_1+gamma*dDb_z/Db_1)
+    term_3 = term_3 + dB*((np.sin(m*H1)-gamma)*Da_z/Da_1+gamma*Db_z/Db_1)
+    if mode == 'pos':
+        term_4 = 1/(2*1j*m*N*(T-S))*1/(1j*m*N-1)*(-np.exp(-H2))
+        term_4 = term_4*((np.sin(m*H1)-gamma)*dDa_z/Da_1+gamma*dDb_z/Db_1)
+    else:
+        term_4 = -1/(2*1j*m*N*(T+S))*1/(-1j*m*N-1)*(-np.exp(-H2))
+        term_4 = term_4*((np.sin(m*H1)-gamma)*dDa_z/Da_1+gamma*dDb_z/Db_1)
 
-    # term_2 = (
-    #     B1/(1j*m-1)*(np.exp((1j*m-1)*H1)-np.exp((1j*m-1)*z))
-    #     + B2/(-1j*m-1)*(np.exp((-1j*m-1)*H1)-np.exp((-1j*m-1)*z)))
-    # term_2 = -1/m*np.sin(m*z)*term_2
-
-    # term_3 = -1/m*1/g2*(-np.exp(-H1)/(1j*m*N-1))
-    # term_3 = term_3*np.sin(m*z)
+    # m = k/A0
+    # G = (N-1)/(H2-H1)
+    #
+    # P = (X-Y)*np.exp(-1j*m*H1)+(X+Y)*np.exp(1j*m*H1)
+    # B1 = (1-beta)/P
+    # B2 = beta/P
+    #
+    # f = calc_f(z, k, N, H1, G, A0)
+    #
+    # # pcfd = np.frompyfunc(mpmath.pcfd, 2, 1)
+    # Da_z = pcfd(-1/2, (1+1j)*f).astype(complex)
+    # Db_z = pcfd(-1/2, (1-1j)*f).astype(complex)
+    #
+    # term_1 = -1/m*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
+    # term_1 = term_1*(B1*Da_z/Da_2+B2*Db_z/Db_2)
+    #
+    # term_2 = D*((1-beta)*Da_z/Da_2+beta*Db_z/Db_2)
+    # term_3 = B*((np.sin(m*H1)-gamma)*Da_z/Da_1+gamma*Db_z/Db_1)
+    # if mode == 'pos':
+    #     term_4 = 1/(2*1j*m*N*(T-S))*1/(1j*m*N-1)*(-np.exp(-H2))
+    #     term_4 = term_4*((np.sin(m*H1)-gamma)*Da_z/Da_1+gamma*Db_z/Db_1)
+    # else:
+    #     term_4 = -1/(2*1j*m*N*(T+S))*1/(-1j*m*N-1)*(-np.exp(-H2))
+    #     term_4 = term_4*((np.sin(m*H1)-gamma)*Da_z/Da_1+gamma*Db_z/Db_1)
 
     return term_1, (term_2+term_3), term_4
 
 
 # positive t mode, upper subdomain
 # @jit(nopython=True)
-def calc_u_base_upper(z, k, N, H1, H2, A0, X, Y, mode='pos'):
+def calc_u_base_upper(
+        z, k, N, H1, H2, A0, X, Y, S, T, beta, gamma, D, mode='pos'):
 
     m = k/A0
 
@@ -589,18 +631,56 @@ def calc_u_base_upper(z, k, N, H1, H2, A0, X, Y, mode='pos'):
     else:
         term_1 = 1j*N/P*np.exp(-1j*m*N*(z-H2))
     term_1 = term_1*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
-    #
-    # term_2_a = 1/(-1j*m*N-1)*(np.exp((-1j*m*N-1)*z)-np.exp((-1j*m*N-1)*H1))
-    # term_2_b = - (g1/g2)*np.exp(-2*1j*m*N*H1)/(1j*m*N-1)
-    # term_2_b = term_2_b*(np.exp((1j*m*N-1)*z)-np.exp((1j*m*N-1)*H1))
-    # term_2 = (term_2_a+term_2_b)*np.exp(1j*m*N*z)/(2*1j*m*N)
-    #
-    # term_3 = 1/(2*1j*N)*(g1*np.exp(1j*m*N*(z-H1))-g2*np.exp(-1j*m*N*(z-H1)))
-    # term_3 = -term_3/(m*g2)/(1j*m*N-1)*(-np.exp((1j*m*N-1)*z-1j*m*N*H1))
 
-    term_2 = term_1
-    term_3 = term_1
-    term_4 = term_1
+    if mode == 'pos':
+        term_2 = D*1j*m*N*np.exp(1j*m*N*(z-H2))
+
+        term_3_a = np.exp(-1j*m*N*(z-H2)-z)
+        term_3_b = np.exp(1j*m*N*(z-H2)-z)
+        term_3 = term_3_a+(T+S)/(T-S)*term_3_b
+        term_3_1 = term_3*np.exp(1j*m*N*(z-H2))/(2*1j*m*N)
+
+        term_3_a = 1/(-1j*m*N-1)*(np.exp(-1j*m*N*(z-H2)-z)-np.exp(-H2))
+        term_3_b = 1/(1j*m*N-1)*(np.exp(1j*m*N*(z-H2)-z)-np.exp(-H2))
+        term_3 = term_3_a+(T+S)/(T-S)*term_3_b
+        term_3_2 = term_3*np.exp(1j*m*N*(z-H2))/2
+
+        term_3 = term_3_1 + term_3_2
+
+        term_4 = ((T+S)*np.exp(1j*m*N*(z-H2))-(T-S)*np.exp(-1j*m*N*(z-H2)))
+        term_4 = term_4*1/(2*(T-S))*1/(1j*m*N-1)
+        term_4_1 = term_4*(-np.exp(1j*m*N*(z-H2)-z))
+
+        term_4 = ((T+S)*np.exp(1j*m*N*(z-H2))+(T-S)*np.exp(-1j*m*N*(z-H2)))
+        term_4 = term_4*1/(2*1j*m*N*(T-S))
+        term_4_2 = term_4*(-np.exp(1j*m*N*(z-H2)-z))
+
+        term_4 = term_4_1 + term_4_2
+
+    else:
+        term_2 = -D*1j*m*N*np.exp(-1j*m*N*(z-H2))
+
+        term_3_a = -np.exp(-1j*m*N*(z-H2)-z)
+        term_3_b = -np.exp(1j*m*N*(z-H2)-z)
+        term_3 = (T-S)/(T+S)*term_3_a+term_3_b
+        term_3_1 = term_3*np.exp(-1j*m*N*(z-H2))/(2*1j*m*N)
+
+        term_3_a = -1/(-1j*m*N-1)*(np.exp(-1j*m*N*(z-H2)-z)-np.exp(-H2))
+        term_3_b = -1/(1j*m*N-1)*(np.exp(1j*m*N*(z-H2)-z)-np.exp(-H2))
+        term_3 = (T-S)/(T+S)*term_3_a+term_3_b
+        term_3_2 = -term_3*np.exp(-1j*m*N*(z-H2))/2
+
+        term_3 = term_3_1 + term_3_2
+
+        term_4 = ((T+S)*np.exp(1j*m*N*(z-H2))-(T-S)*np.exp(-1j*m*N*(z-H2)))
+        term_4 = -term_4*1/(2*(T+S))*1/(-1j*m*N-1)
+        term_4_1 = term_4*(-np.exp(-1j*m*N*(z-H2)-z))
+
+        term_4 = ((T+S)*np.exp(1j*m*N*(z-H2))+(T-S)*np.exp(-1j*m*N*(z-H2)))
+        term_4 = -term_4*1/(2*1j*m*N*(T+S))
+        term_4_2 = term_4*(-np.exp(-1j*m*N*(z-H2)-z))
+
+        term_4 = term_4_1 + term_4_2
 
     return term_1, term_2, (term_3+term_4)  # term_2+term_3
 

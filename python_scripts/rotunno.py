@@ -238,7 +238,7 @@ def solve_piecewise_N(
 
 def solve_continuous_N(
         xN=241, zN=121, tN=32, sN=2000, alpha=2,
-        L=1, N=2, H1=5, H2=6, A=1, heat_right=True, save=True, high_lim=False):
+        L=1, N=2, H1=5, H2=6, A=1, heat_right=True, save=True):
 
     print('Initialising')
 
@@ -259,7 +259,7 @@ def solve_continuous_N(
     s = np.arange(delS, 1, delS, dtype=np.float64)
 
     psi, u, w = integrate_continuous_N(
-        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A, high_lim=high_lim)
+        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A)
     modes = 2
 
     ds = xr.Dataset({

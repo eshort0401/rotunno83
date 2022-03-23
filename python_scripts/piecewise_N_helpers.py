@@ -195,7 +195,7 @@ def calc_u_base_lower(z, k, L, N, H1, A):
     term_2_b = term_2_b*m*np.cos(m*z)
     term_2 = term_2_a+term_2_b
 
-    term_3 = -1/m*1/(np.cos(m*H1)-1j*N*np.sin(m*H1))*(-np.exp(-H1)/(1j*m*N-1))
+    term_3 = -1/m*1/g2*(-np.exp(-H1)/(1j*m*N-1))
     term_3 = term_3*m*np.cos(m*z)
 
     return (term_1+term_2), term_3
