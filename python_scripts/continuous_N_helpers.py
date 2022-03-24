@@ -55,7 +55,7 @@ def integrate_continuous_N(
 
     gamma = (m*np.cos(m*H1)+np.sin(m*H1)*(-dA_1/A_1+alpha_1))/(2*alpha_1)
 
-    beta_p = (1j*m*N+alpha_2+dA_2/A_2)/(2*alpha_2)
+    beta_p = (1j*m*N+alpha_2-dA_2/A_2)/(2*alpha_2)
 
     X_p = 1/2*((1-beta_p)*(Da_1/Da_2)+beta_p*(Db_1/Db_2))
     Y_p = 1j/(2*m)*(
@@ -69,7 +69,7 @@ def integrate_continuous_N(
         (np.sin(m*H1)-gamma)*(Da_2/Da_1)*(-alpha_2+dA_2/A_2)
         + gamma*(Db_2/Db_1)*(alpha_2+dA_2/A_2))
 
-    beta_n = (-1j*m*N+alpha_2+dA_2/A_2)/(2*alpha_2)
+    beta_n = (-1j*m*N+alpha_2-dA_2/A_2)/(2*alpha_2)
 
     X_n = 1/2*((1-beta_n)*(Da_1/Da_2)+beta_n*(Db_1/Db_2))
     Y_n = 1j/(2*m)*(
@@ -309,8 +309,8 @@ def calc_mid_forcing_integrands(
 
     alpha = 1j*M*(1+G*(Zp-H1)) - 1j*dtheta
 
-    Ia = np.exp(-Zp)/(pcfd(-1/2, (1+1j)*f)*alpha).astype(complex)
-    Ib = np.exp(-Zp)/(pcfd(-1/2, (1-1j)*f)*alpha).astype(complex)
+    Ia = np.array(np.exp(-Zp)/(pcfd(-1/2, (1+1j)*f)*alpha)).astype(complex)
+    Ib = np.array(np.exp(-Zp)/(pcfd(-1/2, (1-1j)*f)*alpha)).astype(complex)
 
     low_a = np.zeros([len(z_mid), len(k)]).astype(complex)
     low_b = np.zeros([len(z_mid), len(k)]).astype(complex)
@@ -353,7 +353,7 @@ def calc_theta_A(z, k, N, H1, G, A0):
         besselj(-1/4, f**2/2)*np.sin(f**2/2)
         - besselj(1/4, f**2/2)*np.sin(f**2/2+np.pi/4))
     re = np.array(re).astype(float)
-    im = np.array(re).astype(float)
+    im = np.array(im).astype(float)
     theta = np.arctan(im/re)
     A = np.sqrt(np.pi*f/2)*np.sqrt(re**2+im**2).astype(float)
 
@@ -450,8 +450,8 @@ def calc_psi_base_middle(
     f = calc_f(z, k, N, H1, G, A0)
 
     # pcfd = np.frompyfunc(mpmath.pcfd, 2, 1)
-    Da_z = pcfd(-1/2, (1+1j)*f).astype(complex)
-    Db_z = pcfd(-1/2, (1-1j)*f).astype(complex)
+    Da_z = np.array(pcfd(-1/2, (1+1j)*f)).astype(complex)
+    Db_z = np.array(pcfd(-1/2, (1-1j)*f)).astype(complex)
 
     term_1 = -1/m*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)
     term_1 = term_1*(B1*Da_z/Da_2+B2*Db_z/Db_2)
@@ -562,16 +562,16 @@ def calc_u_base_middle(
 
     f = calc_f(z, k, N, H1, G, A0)
 
-    Da_z = pcfd(-1/2, (1+1j)*f).astype(complex)
-    Db_z = pcfd(-1/2, (1-1j)*f).astype(complex)
+    Da_z = np.array(pcfd(-1/2, (1+1j)*f)).astype(complex)
+    Db_z = np.array(pcfd(-1/2, (1-1j)*f)).astype(complex)
 
     dDa_z = 1j*f*Da_z
-    dDa_z = dDa_z-(1+1j)*pcfd(1/2, (1+1j)*f)
+    dDa_z = dDa_z-(1+1j)*np.array(pcfd(1/2, (1+1j)*f)).astype(complex)
     dDa_z = dDa_z*np.sqrt(m*G)
     dDa_z = dDa_z.astype(complex)
 
     dDb_z = -1j*f*Db_z
-    dDb_z = dDb_z-(1-1j)*pcfd(1/2, (1-1j)*f)
+    dDb_z = dDb_z-(1-1j)*np.array(pcfd(1/2, (1-1j)*f)).astype(complex)
     dDb_z = dDb_z*np.sqrt(m*G)
     dDb_z = dDb_z.astype(complex)
 

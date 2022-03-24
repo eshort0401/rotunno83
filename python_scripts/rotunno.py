@@ -197,7 +197,7 @@ def solve_piecewise_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-10, 10, xN, dtype=np.float64)
+    x = np.linspace(-5, 5, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     z2 = np.linspace(H1, 2*H1, zN, dtype=np.float64)
@@ -247,7 +247,7 @@ def solve_continuous_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-10, 10, xN, dtype=np.float64)
+    x = np.linspace(-5, 5, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     zN_scaled = int(np.floor(zN*(H2-H1)/H1))
