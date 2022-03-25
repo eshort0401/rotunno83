@@ -79,7 +79,7 @@ def integrate_continuous_N(
     mu_n = gamma*(1-beta_n)*Db_2*Da_1-(np.sin(m*H1)-gamma)*beta_n*Da_2*Db_1
 
     print('Pre-calculating middle sub-domain forcing integrals.')
-    Ia, Ib, low_a, low_b, high_a, high_b, z_mid, zp_mid = calc_mid_forcing_integrands(
+    Ia, Ib, low_a, low_b, high_a, high_b = calc_mid_forcing_integrands(
         H1, H2, k, N, L, z, zN, zN_scaled, A0=1)
 
     print('Beginning integration.')
@@ -324,7 +324,7 @@ def calc_mid_forcing_integrands(
         high_a[i] = np.trapz(Ia[:, ind:], zp_mid[ind:], axis=1)
         high_b[i] = np.trapz(Ib[:, ind:], zp_mid[ind:], axis=1)
 
-    return Ia[:, ::grain], Ib[:, ::grain], low_a, low_b, high_a, high_b, z_mid, zp_mid
+    return Ia[:, ::grain], Ib[:, ::grain], low_a, low_b, high_a, high_b
 
 
 # @jit(nopython=True)
