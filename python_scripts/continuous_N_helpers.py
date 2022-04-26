@@ -301,13 +301,9 @@ def calc_mid_forcing_integrands(
     zp_mid = np.linspace(z_mid[0], z_mid[-1], zp_mid_N)
 
     Zp, K = np.meshgrid(zp_mid, k)
-    M = K/A0
 
-    f = np.sqrt(M/G)*(1+G*(Zp-H1))
-
-    dtheta = calc_dtheta(Zp, K, N, H1, G, A0)
-
-    alpha = 1j*M*(1+G*(Zp-H1)) - 1j*dtheta
+    f = calc_f(Zp, K, N, H1, G, A0)
+    alpha = calc_alpha(Zp, K, N, H1, G, A0)
 
     Ia = np.array(np.exp(-Zp)/(pcfd(-1/2, (1+1j)*f)*alpha)).astype(complex)
     Ib = np.array(np.exp(-Zp)/(pcfd(-1/2, (1-1j)*f)*alpha)).astype(complex)
@@ -330,7 +326,7 @@ def calc_mid_forcing_integrands(
 # @jit(nopython=True)
 def calc_f(z, k, N, H1, G, A0):
     m = k/A0
-    f = np.sqrt(m/G)*(1+G*(z-H1))
+    f = np.sqrt(m/np.abs(G))*(1+G*(z-H1))
     return f
 
 
@@ -338,7 +334,10 @@ def calc_f(z, k, N, H1, G, A0):
 def calc_alpha(z, k, N, H1, G, A0):
     m = k/A0
     dtheta = calc_dtheta(z, k, N, H1, G, A0)
-    alpha = 1j*m*(1+G*(z-H1)) - 1j*dtheta
+    if N > 1:
+        alpha = 1j*m*(1+G*(z-H1)) - 1j*dtheta
+    else:
+        alpha = -1j*m*(1+G*(z-H1)) - 1j*dtheta
     return alpha.astype(complex)
 
 
@@ -379,7 +378,10 @@ def calc_dtheta(z, k, N, H1, G, A0):
     den = f*den
 
     dtheta = num/den
-    dtheta = dtheta*np.sqrt(m*G)
+    if N > 1:
+        dtheta = dtheta*np.sqrt(m*G)
+    else:
+        dtheta = -dtheta*np.sqrt(m*np.abs(G))
 
     return np.array(dtheta).astype(float)
 
@@ -404,7 +406,10 @@ def calc_dA(z, k, N, H1, G, A0):
     den = f*den
 
     dA = num/den**(1/2)
-    dA = dA*np.sqrt(m*G)
+    if N > 1:
+        dA = dA*np.sqrt(m*G)
+    else:
+        dA = -dA*np.sqrt(m*np.abs(G))
 
     return np.array(dA).astype(float)
 
@@ -567,12 +572,18 @@ def calc_u_base_middle(
 
     dDa_z = 1j*f*Da_z
     dDa_z = dDa_z-(1+1j)*np.array(pcfd(1/2, (1+1j)*f)).astype(complex)
-    dDa_z = dDa_z*np.sqrt(m*G)
+    if N > 1:
+        dDa_z = dDa_z*np.sqrt(m*G)
+    else:
+        dDa_z = -dDa_z*np.sqrt(m*np.abs(G))
     dDa_z = dDa_z.astype(complex)
 
     dDb_z = -1j*f*Db_z
     dDb_z = dDb_z-(1-1j)*np.array(pcfd(1/2, (1-1j)*f)).astype(complex)
-    dDb_z = dDb_z*np.sqrt(m*G)
+    if N > 1:
+        dDb_z = dDb_z*np.sqrt(m*G)
+    else:
+        dDb_z = -dDb_z*np.sqrt(m*np.abs(G))
     dDb_z = dDb_z.astype(complex)
 
     term_1 = -1/m*(-np.exp(-H1)*(np.sin(m*H1)+m*np.cos(m*H1))+m)/(m**2+1)

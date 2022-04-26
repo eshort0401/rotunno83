@@ -1,6 +1,8 @@
 # System
 import datetime
 import warnings
+import math
+import string
 
 # Performance
 from numba import jit, prange
@@ -71,7 +73,7 @@ def solve_rotunno_case_one(xiN=41, zetaN=41, tauN=32, xipN=1000, zetapN=1000,
     else:
         zetap = np.linspace(0,6,xipN+1)
 
-    tau = np.arange(0,2*np.pi,delTau)
+    tau = np.arange(0, 2*np.pi, delTau)
 
     print('Integrating')
     psi, u, w = integrate_case_one(xi,zeta,tau,xip,zetap,xi0,beta,Atilde)
@@ -427,8 +429,10 @@ def init_fonts():
     # Initialise fonts
     rcParams['font.family'] = 'serif'
     rcParams.update({'font.serif': 'Times New Roman'})
+    rcParams.update({'mathtext.fontset': 'dejavuserif'})
     rcParams.update({'font.size': 12})
     rcParams.update({'font.weight': 'normal'})
+    rcParams.update({'mathtext.fontset': 'cm'})
 
 def get_current_dt_str():
     dt=str(datetime.datetime.now())[0:-7]
@@ -438,15 +442,20 @@ def get_current_dt_str():
     return dt
 
 
-def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
+def plotCont(
+        ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False,
+        fig=None, ax=None):
 
     init_fonts()
-    plt.close('all')
+    # plt.close('all')
 
     print('Plotting {}.'.format(var))
 
+    # import pdb; pdb.set_trace()
+
     # psi plot
-    fig, ax = plt.subplots()
+    if (fig is None) or (ax is None):
+        fig, ax = plt.subplots()
 
     varMin = np.min(ds[var])
     varMax = np.max(ds[var])
@@ -454,12 +463,11 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
     abs_max = np.max([np.abs(varMin), np.abs(varMax)])
 
     if signed:
-        varInc = abs_max/10
-        levels = np.arange(-abs_max, abs_max+varInc, varInc)
+        start, end, step = nice_bounds(-abs_max, abs_max, 20)
+        levels = np.arange(start, end+step/2, step/2)
     else:
-        varInc = (varMax-varMin)/10
-        levels = np.arange(varMin, varMax+varInc, varInc)
-
+        start, end, step = nice_bounds(0, abs_max, 5)
+        levels = np.arange(0, end+step/2, step/2)
     try:
         if ds.x.attrs['units'] == 'm':
             x = ds.x/1000
@@ -475,13 +483,16 @@ def plotCont(ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False):
         for var in ds.keys():
             ds[var].attrs['units'] = '?'
 
-    contourPlot = plt.contourf(
+    contourPlot = ax.contourf(
         x, z, ds[var].isel(t=t),
         levels=levels, cmap=cmap)
 
+    plt.sca(ax)
     cbar = plt.colorbar(contourPlot)
+    cbar.set_ticks(levels[::2])
+
     cbar.set_label('[' + ds[var].attrs['units'] + ']')
-    plt.title(var + ' [' + ds[var].attrs['units'] + ']')
+    # plt.title(var + ' [' + ds[var].attrs['units'] + ']')
     fig.patch.set_facecolor('white')
 
     if save:
@@ -513,22 +524,40 @@ def animateCont(ds, var='psi', cmap='RdBu_r'):
     anim.save(outFile, dpi=200, writer='imagemagick')
 
 
-def plotVelocity(ds, t=0, save=False):
+def make_subplot_labels(axes, size=16, x_shift=-0.175):
+    labels = list(string.ascii_lowercase)
+    labels = [label + ')' for label in labels]
+    for i in range(len(axes)):
+        axes[i].text(
+            x_shift, 1.0, labels[i], transform=axes[i].transAxes, size=size)
+
+
+def panelCont(ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6]):
+    plt.close('all')
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    for i in range(len(t_list)):
+        plotCont(ds, var=var, t=t_list[i], fig=fig, ax=axes.flatten()[i])
+    make_subplot_labels(axes.flatten())
+
+
+def plotVelocity(ds, t=0, save=False, fig=None, ax=None):
 
     # import pdb
     # pdb.set_trace()
 
-    plt.close('all')
+    # plt.close('all')
     init_fonts()
     print('Plotting velocity.')
 
     # Velocity plot
-    fig, ax = plt.subplots()
+    if (fig is None) or (ax is None):
+        fig, ax = plt.subplots()
 
-    ds['speed']=(ds.u**2+ds.w**2)**(1/2)
-    speedMax=np.ceil(np.amax(ds.speed)*20)/20
-    speedInc=speedMax/20
-    levels=np.arange(0, speedMax+speedInc, speedInc)
+    ds['speed'] = (ds.u**2+ds.w**2)**(1/2)
+    speedMax = np.amax(ds.speed)
+
+    start, end, step = nice_bounds(0, speedMax, 10)
+    levels = np.arange(0, end+step/2, step/2)
 
     if ds.x.attrs['units'] == 'm':
         x = ds.x/1000
@@ -541,31 +570,33 @@ def plotVelocity(ds, t=0, save=False):
         plt.xlabel('Distance [' + ds.x.attrs['units'] + ']')
         plt.ylabel('Height [' + ds.z.attrs['units'] + ']')
 
+    plt.sca(ax)
 
-    contourPlot=ax.contourf(x, z, ds.speed.isel(t=t),
-                            cmap='Reds', levels=levels)
+    contourPlot = ax.contourf(
+        x, z, ds.speed.isel(t=t), cmap='Reds', levels=levels)
 
-    skip=int(np.floor(np.size(ds.x)/12))
+    skip = int(np.floor(np.size(ds.x)/16))
 
-    sQ=int(np.ceil(skip/2))
-    dx=x[1]-x[0]
-    uQ = ds.u[:,sQ::skip,sQ::skip]
-    wQ = ds.w[:,sQ::skip,sQ::skip]
-    speedMaxQ=np.amax((uQ**2 + wQ**2)**(1/2)).values
-    scale=(speedMaxQ/(skip*dx)).values
+    sQ = int(np.ceil(skip/2))
+    dx = x[1]-x[0]
+    uQ = ds.u[:, sQ::skip, sQ::skip]
+    wQ = ds.w[:, sQ::skip, sQ::skip]
+    speedMaxQ = np.amax((uQ**2 + wQ**2)**(1/2)).values
+    scale = (speedMaxQ/(skip*dx)).values
 
-    ax.quiver(x[sQ::skip], z[sQ::skip],
-              uQ.isel(t=t), wQ.isel(t=t),
-              units='xy', angles='xy', scale=scale)
+    ax.quiver(
+        x[sQ::skip], z[sQ::skip], uQ.isel(t=t), wQ.isel(t=t),
+        units='xy', angles='xy', scale=scale)
 
-    plt.title('Velocity [' + ds.u.attrs['units'] + ']')
-    cbar=plt.colorbar(contourPlot)
+    # plt.title('Velocity [' + ds.u.attrs['units'] + ']')
+    cbar = plt.colorbar(contourPlot)
+    cbar.set_ticks(levels[::2])
     cbar.set_label('Speed  [' + ds.u.attrs['units'] + ']')
 
     fig.patch.set_facecolor('white')
 
     if save:
-        outFile='./../figures/velocity_' + get_current_dt_str() + '.png'
+        outFile = './../figures/velocity_' + get_current_dt_str() + '.png'
         plt.savefig(outFile, dpi=100, writer='imagemagick')
 
     return ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z, uQ, wQ
@@ -598,3 +629,55 @@ def animateVelocity(ds):
     anim.save(outFile, dpi=200, writer='imagemagick')
 
     plt.close("all")
+
+
+def panelVelocity(ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6]):
+    plt.close('all')
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    for i in range(len(t_list)):
+        plotVelocity(ds, t=t_list[i], fig=fig, ax=axes.flatten()[i])
+    make_subplot_labels(axes.flatten())
+
+
+def nice_number(value, round_=False):
+    '''nice_number(value, round_=False) -> float'''
+    exponent = math.floor(math.log(value, 10))
+    fraction = value / 10 ** exponent
+
+    if round_:
+        if fraction < 1.5:
+            nice_fraction = 1.
+        elif fraction < 2.5:
+            nice_fraction = 2.
+        elif fraction < 6:
+            nice_fraction = 5.
+        else:
+            nice_fraction = 10.
+    else:
+        if fraction <= 1:
+            nice_fraction = 1.
+        elif fraction <= 2:
+            nice_fraction = 2.
+        elif fraction <= 5:
+            nice_fraction = 5.
+        else:
+            nice_fraction = 10.
+
+    return nice_fraction * 10 ** exponent
+
+
+def nice_bounds(axis_start, axis_end, num_ticks=10):
+    '''
+    nice_bounds(axis_start, axis_end, num_ticks=10) -> tuple
+    @return: tuple as (nice_axis_start, nice_axis_end, nice_tick_width)
+    '''
+    axis_width = axis_end - axis_start
+    if axis_width == 0:
+        nice_tick = 0
+    else:
+        nice_range = nice_number(axis_width)
+        nice_tick = nice_number(nice_range / (num_ticks - 1), round_=True)
+        axis_start = math.floor(axis_start / nice_tick) * nice_tick
+        axis_end = math.ceil(axis_end / nice_tick) * nice_tick
+
+    return axis_start, axis_end, nice_tick
