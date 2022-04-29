@@ -444,7 +444,7 @@ def get_current_dt_str():
 
 def plotCont(
         ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False,
-        fig=None, ax=None):
+        fig=None, ax=None, cbar_steps=10):
 
     init_fonts()
     # plt.close('all')
@@ -463,7 +463,7 @@ def plotCont(
     abs_max = np.max([np.abs(varMin), np.abs(varMax)])
 
     if signed:
-        start, end, step = nice_bounds(-abs_max, abs_max, 20)
+        start, end, step = nice_bounds(-abs_max, abs_max, cbar_steps)
         levels = np.arange(start, end+step/2, step/2)
     else:
         start, end, step = nice_bounds(0, abs_max, 5)
@@ -491,9 +491,21 @@ def plotCont(
     cbar = plt.colorbar(contourPlot)
     cbar.set_ticks(levels[::2])
 
+    cbar.formatter.set_powerlimits((0, 0))
+    cbar.update_ticks()
+
     cbar.set_label('[' + ds[var].attrs['units'] + ']')
     # plt.title(var + ' [' + ds[var].attrs['units'] + ']')
     fig.patch.set_facecolor('white')
+    plt.subplots_adjust(hspace=0.3)
+
+    # z_start, z_end, z_step = nice_bounds(0, z[-1], 5)
+    # plt.yticks(np.arange(z_start, z_end+z_step, z_step))
+
+    t_s = int(ds.t.isel(t=t).values + 3600*6)
+    h = int(t_s / 3600)
+    m = int((t_s % 3600) / 60)
+    plt.title('{:02d}:{:02d} LST'.format(h, m))
 
     if save:
         outFile = './../figures/{}_'.format(var)
@@ -524,23 +536,27 @@ def animateCont(ds, var='psi', cmap='RdBu_r'):
     anim.save(outFile, dpi=200, writer='imagemagick')
 
 
-def make_subplot_labels(axes, size=16, x_shift=-0.175):
+def make_subplot_labels(axes, size=16, x_shift=-0.175, y_shift=1):
     labels = list(string.ascii_lowercase)
     labels = [label + ')' for label in labels]
     for i in range(len(axes)):
         axes[i].text(
-            x_shift, 1.0, labels[i], transform=axes[i].transAxes, size=size)
+            x_shift, y_shift, labels[i], transform=axes[i].transAxes,
+            size=size)
 
 
-def panelCont(ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6]):
+def panelCont(
+        ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6], cbar_steps=20):
     plt.close('all')
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     for i in range(len(t_list)):
-        plotCont(ds, var=var, t=t_list[i], fig=fig, ax=axes.flatten()[i])
+        plotCont(
+            ds, var=var, t=t_list[i], fig=fig, ax=axes.flatten()[i],
+            cbar_steps=cbar_steps)
     make_subplot_labels(axes.flatten())
 
 
-def plotVelocity(ds, t=0, save=False, fig=None, ax=None):
+def plotVelocity(ds, t=0, save=False, fig=None, ax=None, cbar_steps=10):
 
     # import pdb
     # pdb.set_trace()
@@ -556,7 +572,7 @@ def plotVelocity(ds, t=0, save=False, fig=None, ax=None):
     ds['speed'] = (ds.u**2+ds.w**2)**(1/2)
     speedMax = np.amax(ds.speed)
 
-    start, end, step = nice_bounds(0, speedMax, 10)
+    start, end, step = nice_bounds(0, speedMax, cbar_steps)
     levels = np.arange(0, end+step/2, step/2)
 
     if ds.x.attrs['units'] == 'm':
@@ -593,7 +609,16 @@ def plotVelocity(ds, t=0, save=False, fig=None, ax=None):
     cbar.set_ticks(levels[::2])
     cbar.set_label('Speed  [' + ds.u.attrs['units'] + ']')
 
+    # z_start, z_end, z_step = nice_bounds(0, z[-1], 5)
+    # plt.yticks(np.arange(z_start, z_end+z_step, z_step))
+
     fig.patch.set_facecolor('white')
+
+    t_s = int(ds.t.isel(t=t).values + 3600*6)
+    h = int(t_s / 3600)
+    m = int((t_s % 3600) / 60)
+    plt.title('{:02d}:{:02d} LST'.format(h, m))
+    plt.subplots_adjust(hspace=0.3)
 
     if save:
         outFile = './../figures/velocity_' + get_current_dt_str() + '.png'
@@ -620,6 +645,11 @@ def animateVelocity(ds):
                   uQ.isel(t=i), wQ.isel(t=i),
                   units='xy', angles='xy', scale=scale)
 
+        t_s = int(ds.t.isel(t=i).values + 3600*6)
+        h = int(t_s / 3600) % 24
+        m = int((t_s % 3600) / 60)
+        plt.title('{:02d}:{:02d} LST'.format(h, m))
+
         return contourPlot, ax
 
     anim = FuncAnimation(fig, update, frames=np.arange(0, np.size(ds.t)),
@@ -636,6 +666,25 @@ def panelVelocity(ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6]):
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     for i in range(len(t_list)):
         plotVelocity(ds, t=t_list[i], fig=fig, ax=axes.flatten()[i])
+    make_subplot_labels(axes.flatten())
+
+
+def panelDiffTypes(ds, t=4):
+    plt.close('all')
+    fig, axes = plt.subplots(1, 2, figsize=(12, 3.6))
+    plotCont(ds, var='w', t=t, fig=fig, ax=axes.flatten()[0])
+    plotVelocity(ds, t=t, fig=fig, ax=axes.flatten()[1], cbar_steps=5)
+    make_subplot_labels(axes.flatten())
+
+
+def panelForcing(ds, t=3):
+    plt.close('all')
+    nF = len(ds.forcing)
+    fig, axes = plt.subplots(nF, 1, figsize=(6, 4.5*nF))
+    for i in range(nF):
+        plt.sca(axes.flatten()[nF-i-1])
+        ds_i = ds.isel(forcing=i)
+        plotVelocity(ds_i, t=t, fig=fig, ax=axes.flatten()[nF-i-1])
     make_subplot_labels(axes.flatten())
 
 

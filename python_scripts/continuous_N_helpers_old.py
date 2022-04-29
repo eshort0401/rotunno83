@@ -7,7 +7,6 @@ from numba import jit, prange
 
 # Analysis
 import numpy as np
-import xarray as xr
 
 from scipy.special import exp1
 from scipy.special import pbdv
