@@ -199,11 +199,22 @@ def solve_piecewise_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-5, 5, xN, dtype=np.float64)
+    # Normal
+    x = np.linspace(-7, 7, xN, dtype=np.float64)
+    # YMC
+    # x = np.linspace(-15, 15, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
+
+    # Normal
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     z2 = np.linspace(H1, 2*H1, zN, dtype=np.float64)
     z = np.concatenate([z1, z2[1:]])
+
+    # YMC
+    # z1 = np.linspace(0, H1, zN, dtype=np.float64)
+    # z2 = np.linspace(H1, H1+H1/4, int(zN/4), dtype=np.float64)
+    # z = np.concatenate([z1, z2[1:]])
+
     t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
     s = np.arange(delS, 1, delS, dtype=np.float64)
 
@@ -249,7 +260,7 @@ def solve_continuous_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-5, 5, xN, dtype=np.float64)
+    x = np.linspace(-7, 7, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     zN_scaled = int(np.floor(zN*(H2-H1)/H1))
@@ -444,7 +455,7 @@ def get_current_dt_str():
 
 def plotCont(
         ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False,
-        fig=None, ax=None, cbar_steps=10):
+        fig=None, ax=None, cbar_steps=10, local_max=False):
 
     init_fonts()
     # plt.close('all')
@@ -457,14 +468,18 @@ def plotCont(
     if (fig is None) or (ax is None):
         fig, ax = plt.subplots()
 
-    varMin = np.min(ds[var])
-    varMax = np.max(ds[var])
+    if local_max:
+        varMin = np.min(ds[var].isel(t=t))
+        varMax = np.max(ds[var].isel(t=t))
+    else:
+        varMin = np.min(ds[var])
+        varMax = np.max(ds[var])
 
     abs_max = np.max([np.abs(varMin), np.abs(varMax)])
 
     if signed:
         start, end, step = nice_bounds(-abs_max, abs_max, cbar_steps)
-        levels = np.arange(start, end+step/2, step/2)
+        levels = np.arange(start, end+step/2-1e-5, step/2)
     else:
         start, end, step = nice_bounds(0, abs_max, 5)
         levels = np.arange(0, end+step/2, step/2)
@@ -491,7 +506,12 @@ def plotCont(
     cbar = plt.colorbar(contourPlot)
     cbar.set_ticks(levels[::2])
 
-    cbar.formatter.set_powerlimits((0, 0))
+    # x_max = np.max(x)
+    # x_start, x_end, x_step = nice_bounds(-x_max, x_max, num_ticks=10)
+
+    plt.xticks(np.arange(-750, 1000, 250))
+
+    # cbar.formatter.set_powerlimits((0, 0))
     cbar.update_ticks()
 
     cbar.set_label('[' + ds[var].attrs['units'] + ']')
@@ -502,7 +522,7 @@ def plotCont(
     # z_start, z_end, z_step = nice_bounds(0, z[-1], 5)
     # plt.yticks(np.arange(z_start, z_end+z_step, z_step))
 
-    t_s = int(ds.t.isel(t=t).values + 3600*6)
+    t_s = int(ds.t.isel(t=t).values + 3600*12)
     h = int(t_s / 3600)
     m = int((t_s % 3600) / 60)
     plt.title('{:02d}:{:02d} LST'.format(h, m))
@@ -527,6 +547,10 @@ def animateCont(ds, var='psi', cmap='RdBu_r'):
         # "artists" that have to be redrawn for this frame.
         contourPlot = ax.contourf(
             x, z, ds[var].isel(t=i), levels=levels, cmap=cmap)
+        t_s = int(ds[var].t.isel(t=i).values + 3600*12)
+        h = int(t_s / 3600) % 24
+        m = int((t_s % 3600) / 60)
+        ax.set_title('{:02d}:{:02d} LST'.format(h, m))
         return contourPlot, ax
 
     anim = FuncAnimation(
@@ -556,7 +580,42 @@ def panelCont(
     make_subplot_labels(axes.flatten())
 
 
-def plotVelocity(ds, t=0, save=False, fig=None, ax=None, cbar_steps=10):
+def contComparison(
+        ds1, ds2, var='psi', cmap='RdBu_r', cbar_steps=10, t=0):
+    plt.close('all')
+    fig, axes = plt.subplots(1, 2, figsize=(12, 3.6))
+    plotCont(
+        ds1, var=var, t=t, fig=fig, ax=axes[0],
+        cbar_steps=cbar_steps)
+    plotCont(
+        ds2, var=var, t=t, fig=fig, ax=axes[1],
+        cbar_steps=cbar_steps)
+    axes[1].plot([-20, -20], [0, 25], '--', color='black')
+    axes[1].plot([-2200, -2200], [0, 25], '--', color='grey')
+    make_subplot_labels(axes.flatten())
+
+
+def forcingComparison(
+        ds, var='psi', cmap='RdBu_r', cbar_steps=[10, 10, 10], t=[0, 0, 0]):
+
+    forcings = len(ds.forcing)
+    plt.close('all')
+    fig, axes = plt.subplots(forcings, 1, figsize=(5, 3.6*forcings))
+    for i in range(forcings):
+        test = ds.isel(forcing=[i])
+        test = test.sum(dim='mode', keep_attrs=True)
+        test = test.sum(dim='forcing', keep_attrs=True)
+        plt.sca(axes[i])
+        plotCont(
+            test, var=var, t=t[i], fig=fig, ax=axes[i],
+            cbar_steps=cbar_steps[i], local_max=True)
+    make_subplot_labels(axes.flatten())
+    plt.subplots_adjust(hspace=.4)
+
+
+def plotVelocity(
+        ds, t=0, save=False, fig=None, ax=None, cbar_steps=10,
+        local_max=False):
 
     # import pdb
     # pdb.set_trace()
@@ -570,7 +629,10 @@ def plotVelocity(ds, t=0, save=False, fig=None, ax=None, cbar_steps=10):
         fig, ax = plt.subplots()
 
     ds['speed'] = (ds.u**2+ds.w**2)**(1/2)
-    speedMax = np.amax(ds.speed)
+    if local_max:
+        speedMax = np.amax(ds.speed.isel(t=t))
+    else:
+        speedMax = np.amax(ds.speed)
 
     start, end, step = nice_bounds(0, speedMax, cbar_steps)
     levels = np.arange(0, end+step/2, step/2)
@@ -612,9 +674,11 @@ def plotVelocity(ds, t=0, save=False, fig=None, ax=None, cbar_steps=10):
     # z_start, z_end, z_step = nice_bounds(0, z[-1], 5)
     # plt.yticks(np.arange(z_start, z_end+z_step, z_step))
 
+    plt.xticks(np.arange(-750, 1000, 250))
+
     fig.patch.set_facecolor('white')
 
-    t_s = int(ds.t.isel(t=t).values + 3600*6)
+    t_s = int(ds.t.isel(t=t).values + 3600*12)
     h = int(t_s / 3600)
     m = int((t_s % 3600) / 60)
     plt.title('{:02d}:{:02d} LST'.format(h, m))
@@ -672,8 +736,11 @@ def panelVelocity(ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6]):
 def panelDiffTypes(ds, t=4):
     plt.close('all')
     fig, axes = plt.subplots(1, 2, figsize=(12, 3.6))
-    plotCont(ds, var='w', t=t, fig=fig, ax=axes.flatten()[0])
-    plotVelocity(ds, t=t, fig=fig, ax=axes.flatten()[1], cbar_steps=5)
+    plotCont(
+        ds, var='w', t=t, fig=fig, ax=axes.flatten()[0], local_max=True,
+        cbar_steps=10)
+    plotVelocity(
+        ds, t=t, fig=fig, ax=axes.flatten()[1], cbar_steps=6, local_max=True)
     make_subplot_labels(axes.flatten())
 
 

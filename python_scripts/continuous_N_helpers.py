@@ -80,7 +80,7 @@ def integrate_continuous_N(
 
     print('Pre-calculating middle sub-domain forcing integrals.')
     Ia, Ib, low_a, low_b, high_a, high_b = calc_mid_forcing_integrands(
-        H1, H2, k, N, L, z, zN, zN_scaled, A0=1)
+        H1, H2, k, N, L, z, zN, zN_scaled, A0)
 
     print('Beginning integration.')
     print('Integrating lower sub-domain.')
@@ -292,7 +292,7 @@ def loop(
 
 
 def calc_mid_forcing_integrands(
-        H1, H2, k, N, L, z, zN, zN_scaled, A0=1, grain=3):
+        H1, H2, k, N, L, z, zN, zN_scaled, A0, grain=3):
 
     G = (N-1)/(H2-H1)
 
