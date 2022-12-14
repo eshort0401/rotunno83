@@ -22,7 +22,10 @@ from qian_helpers import calc_theta, calc_k_2, calc_k_3
 from rotunno_helpers import integrate_case_two, integrate_case_one
 from channel_helpers import integrate_channel, integrate_channel_U0
 from piecewise_N_helpers import integrate_piecewise_N
+from piecewise_N_convective_helpers import integrate_piecewise_N_convective
+from convective_helpers import integrate_convective
 from continuous_N_helpers import integrate_continuous_N
+from continuous_N_convective_helpers import integrate_continuous_N_convective
 
 
 def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
@@ -139,6 +142,7 @@ def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
                            'w':{'zlib':True, 'complevel':9}})
     return ds
 
+
 def solve_qian(xiN=241, zetaN=121, tauN=32, sN=2000, alpha=3,
                U=0.625, L=0.1, heat_right=True, save=True):
 
@@ -249,6 +253,132 @@ def solve_piecewise_N(
     return ds
 
 
+def solve_piecewise_N_convective(
+        xN=241, zN=121, tN=32, sN=2000, alpha=2,
+        L=1, D=1, N=2, H1=2, A=1, heat_right=True, save=True, z_top=None):
+
+    if z_top is None:
+        z_top = 2*H1
+
+    print('Initialising.')
+
+    # Time interval
+    del_t = 2*np.pi/tN
+    delS = 1/sN
+
+    # Initialise domains
+    # Normal
+    x = np.linspace(-3, 3, xN, dtype=np.float64)
+    # YMC
+    # x = np.linspace(-15, 15, xN, dtype=np.float64)
+    # Dont start at zero as exponential integral not defined there
+
+    # Normal
+    z1 = np.linspace(0, H1, zN, dtype=np.float64)
+
+    zN2 = np.floor((z_top-H1)*zN/H1).astype(int)
+
+    z2 = np.linspace(H1, z_top, zN2, dtype=np.float64)
+    z = np.concatenate([z1, z2[1:]])
+
+    # YMC
+    # z1 = np.linspace(0, H1, zN, dtype=np.float64)
+    # z2 = np.linspace(H1, H1+H1/4, int(zN/4), dtype=np.float64)
+    # z = np.concatenate([z1, z2[1:]])
+
+    t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
+    s = np.arange(delS, 1, delS, dtype=np.float64)
+
+    psi, u, w = integrate_piecewise_N_convective(
+        x, z, t, s, alpha, L, D, N, H1, zN, A)
+    modes = 2
+
+    ds = xr.Dataset({
+        'psi': (('mode', 'forcing', 't', 'z', 'x'), psi),
+        'u': (('mode', 'forcing', 't', 'z', 'x'), u),
+        'w': (('mode', 'forcing', 't', 'z', 'x'), w),
+        # 'bq': (('t', 'z', 'x'), bq),
+        # 'bw': (('mode', 't', 'z', 'x'), bw)
+        },
+        {
+            'mode': np.arange(1, modes+1), 'forcing': np.arange(1, 3), 't': t,
+            'z': z, 'x': x},
+        {'L': L})
+
+    print('Saving.')
+    for var in ['psi', 'u', 'w', 'x', 'z', 't']:
+        ds[var].attrs['units'] = '-'
+
+    if save:
+        ds.to_netcdf(
+            '../datasets/qian_{}.nc'.format(get_current_dt_str()),
+            encoding={
+                'psi': {'zlib': True, 'complevel': 9},
+                'u': {'zlib': True, 'complevel': 9},
+                'w': {'zlib': True, 'complevel': 9}
+                })
+    return ds
+
+
+def solve_convective(
+        xN=241, zN=121, tN=32, sN=2000, alpha=2,
+        L=1, D=1, A=1, heat_right=True, save=True):
+
+    print('Initialising.')
+
+    # Time interval
+    del_t = 2*np.pi/tN
+    delS = 1/sN
+
+    # Initialise domains
+    # Normal
+    x = np.linspace(-3, 3, xN, dtype=np.float64)
+    # YMC
+    # x = np.linspace(-15, 15, xN, dtype=np.float64)
+    # Dont start at zero as exponential integral not defined there
+
+    # Normal
+    z = np.linspace(0, 2, zN, dtype=np.float64)
+
+    # YMC
+    # z1 = np.linspace(0, H1, zN, dtype=np.float64)
+    # z2 = np.linspace(H1, H1+H1/4, int(zN/4), dtype=np.float64)
+    # z = np.concatenate([z1, z2[1:]])
+
+    t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
+    s = np.arange(delS, 1, delS, dtype=np.float64)
+
+    psi, u, w = integrate_convective(
+        x, z, t, s, alpha, L, D, A)
+    modes = 2
+
+    ds = xr.Dataset({
+        'psi': (('mode', 't', 'z', 'x'), psi),
+        'u': (('mode', 't', 'z', 'x'), u),
+        'w': (('mode', 't', 'z', 'x'), w),
+        # 'bq': (('t', 'z', 'x'), bq),
+        # 'bw': (('mode', 't', 'z', 'x'), bw)
+        },
+        {
+            'mode': np.arange(1, modes+1), 't': t,
+            'z': z, 'x': x},
+        {'L': L})
+
+    print('Saving.')
+    for var in ['psi', 'u', 'w', 'x', 'z', 't']:
+        ds[var].attrs['units'] = '-'
+
+    if save:
+        ds.to_netcdf(
+            '../datasets/convective_{}.nc'.format(get_current_dt_str()),
+            encoding={
+                'psi': {'zlib': True, 'complevel': 9},
+                'u': {'zlib': True, 'complevel': 9},
+                'w': {'zlib': True, 'complevel': 9}
+                })
+    return ds
+
+
 def solve_continuous_N(
         xN=241, zN=121, tN=32, sN=2000, alpha=2,
         L=1, N=2, H1=5, H2=6, A=1, heat_right=True, save=True):
@@ -260,7 +390,7 @@ def solve_continuous_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-7, 7, xN, dtype=np.float64)
+    x = np.linspace(-4, 4, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     zN_scaled = int(np.floor(zN*(H2-H1)/H1))
@@ -273,6 +403,58 @@ def solve_continuous_N(
 
     psi, u, w = integrate_continuous_N(
         x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A)
+    modes = 2
+
+    ds = xr.Dataset({
+        'psi': (('mode', 'forcing', 't', 'z', 'x'), psi),
+        'u': (('mode', 'forcing', 't', 'z', 'x'), u),
+        'w': (('mode', 'forcing', 't', 'z', 'x'), w),
+        },
+        {
+            'mode': np.arange(1, modes+1), 'forcing': np.arange(1, 4), 't': t,
+            'z': z, 'x': x},
+        {'L': L})
+
+    print('Saving.')
+    for var in ['psi', 'u', 'w', 'x', 'z', 't']:
+        ds[var].attrs['units'] = '-'
+
+    if save:
+        ds.to_netcdf(
+            '../datasets/qian_{}.nc'.format(get_current_dt_str()),
+            encoding={
+                'psi': {'zlib': True, 'complevel': 9},
+                'u': {'zlib': True, 'complevel': 9},
+                'w': {'zlib': True, 'complevel': 9}
+                })
+    return ds
+
+
+
+def solve_continuous_N_convective(
+        xN=241, zN=121, tN=32, sN=2000, alpha=2,
+        L=1, N=2, H1=5, H2=6, A=1, D=1, heat_right=True, save=True):
+
+    print('Initialising')
+
+    # Time interval
+    del_t = 2*np.pi/tN
+    delS = 1/sN
+
+    # Initialise domains
+    x = np.linspace(-3, 3, xN, dtype=np.float64)
+    # Dont start at zero as exponential integral not defined there
+    z1 = np.linspace(0, H1, zN, dtype=np.float64)
+    zN_scaled = int(np.floor(zN*(H2-H1)/H1))
+    z2 = np.linspace(H1, H2, zN_scaled+1, dtype=np.float64)
+    z3 = np.linspace(H2, H2+H1, zN)
+    z = np.concatenate([z1, z2[1:], z3[1:]])
+
+    t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
+    s = np.arange(delS, 1, delS, dtype=np.float64)
+
+    psi, u, w = integrate_continuous_N_convective(
+        x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A, D)
     modes = 2
 
     ds = xr.Dataset({
@@ -509,7 +691,7 @@ def plotCont(
     # x_max = np.max(x)
     # x_start, x_end, x_step = nice_bounds(-x_max, x_max, num_ticks=10)
 
-    plt.xticks(np.arange(-750, 1000, 250))
+    # plt.xticks(np.arange(-750, 1000, 250))
 
     # cbar.formatter.set_powerlimits((0, 0))
     cbar.update_ticks()
