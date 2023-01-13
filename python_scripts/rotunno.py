@@ -268,7 +268,7 @@ def solve_piecewise_N_convective(
 
     # Initialise domains
     # Normal
-    x = np.linspace(-3, 3, xN, dtype=np.float64)
+    x = np.linspace(-1, 1, xN, dtype=np.float64)
     # YMC
     # x = np.linspace(-15, 15, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
@@ -433,7 +433,8 @@ def solve_continuous_N(
 
 def solve_continuous_N_convective(
         xN=241, zN=121, tN=32, sN=2000, alpha=2,
-        L=1, N=2, H1=5, H2=6, A=1, D=1, heat_right=True, save=True):
+        L=1, N=2, H1=5, H2=6, A=1, D=1, heat_right=True,
+        save=True, z_top=None):
 
     print('Initialising')
 
@@ -442,12 +443,13 @@ def solve_continuous_N_convective(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-3, 3, xN, dtype=np.float64)
+    x = np.linspace(-1, 1, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     zN_scaled = int(np.floor(zN*(H2-H1)/H1))
     z2 = np.linspace(H1, H2, zN_scaled+1, dtype=np.float64)
-    z3 = np.linspace(H2, H2+H1, zN)
+    zN3 = int(np.floor((z_top-H2)*zN/H1).astype(int))
+    z3 = np.linspace(H2, z_top, zN3, dtype=np.float64)
     z = np.concatenate([z1, z2[1:], z3[1:]])
 
     t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
@@ -637,7 +639,8 @@ def get_current_dt_str():
 
 def plotCont(
         ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False,
-        fig=None, ax=None, cbar_steps=10, local_max=False):
+        fig=None, ax=None, cbar_steps=10, local_max=False, power_limits=False,
+        abs_max=None):
 
     init_fonts()
     # plt.close('all')
@@ -657,7 +660,8 @@ def plotCont(
         varMin = np.min(ds[var])
         varMax = np.max(ds[var])
 
-    abs_max = np.max([np.abs(varMin), np.abs(varMax)])
+    if abs_max is None:
+        abs_max = np.max([np.abs(varMin), np.abs(varMax)])
 
     if signed:
         start, end, step = nice_bounds(-abs_max, abs_max, cbar_steps)
@@ -691,9 +695,11 @@ def plotCont(
     # x_max = np.max(x)
     # x_start, x_end, x_step = nice_bounds(-x_max, x_max, num_ticks=10)
 
-    # plt.xticks(np.arange(-750, 1000, 250))
+    # plt.xticks(np.arange(-1500, 2000, 500))
+    plt.xticks(np.arange(-750, 800, 250))
 
-    # cbar.formatter.set_powerlimits((0, 0))
+    if power_limits:
+        cbar.formatter.set_powerlimits((0, 0))
     cbar.update_ticks()
 
     cbar.set_label('[' + ds[var].attrs['units'] + ']')
@@ -752,13 +758,17 @@ def make_subplot_labels(axes, size=16, x_shift=-0.175, y_shift=1):
 
 
 def panelCont(
-        ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6], cbar_steps=20):
+        ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6], cbar_steps=20,
+        abs_max=None):
     plt.close('all')
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     for i in range(len(t_list)):
         plotCont(
             ds, var=var, t=t_list[i], fig=fig, ax=axes.flatten()[i],
-            cbar_steps=cbar_steps)
+            cbar_steps=cbar_steps, abs_max=abs_max)
+        # axes.flatten()[i].plot([-600, -600], [0, 25], '--', color='grey')
+        # axes.flatten()[i].plot([-800, -800], [0, 25], '--', color='grey')
+        # axes.flatten()[i].plot([-1000, -1000], [0, 25], '--', color='grey')
     make_subplot_labels(axes.flatten())
 
 
@@ -772,8 +782,13 @@ def contComparison(
     plotCont(
         ds2, var=var, t=t, fig=fig, ax=axes[1],
         cbar_steps=cbar_steps)
-    axes[1].plot([-20, -20], [0, 25], '--', color='black')
-    axes[1].plot([-2200, -2200], [0, 25], '--', color='grey')
+    axes[0].plot([-600, -600], [0, 25], '--', color='grey')
+    axes[0].plot([-800, -800], [0, 25], '--', color='grey')
+    axes[0].plot([-1000, -1000], [0, 25], '--', color='grey')
+    axes[1].plot([-600, -600], [0, 25], '--', color='grey')
+    axes[1].plot([-800, -800], [0, 25], '--', color='grey')
+    axes[1].plot([-1000, -1000], [0, 25], '--', color='grey')
+
     make_subplot_labels(axes.flatten())
 
 
@@ -920,7 +935,7 @@ def panelDiffTypes(ds, t=4):
     fig, axes = plt.subplots(1, 2, figsize=(12, 3.6))
     plotCont(
         ds, var='w', t=t, fig=fig, ax=axes.flatten()[0], local_max=True,
-        cbar_steps=10)
+        cbar_steps=10, power_limits=True)
     plotVelocity(
         ds, t=t, fig=fig, ax=axes.flatten()[1], cbar_steps=6, local_max=True)
     make_subplot_labels(axes.flatten())

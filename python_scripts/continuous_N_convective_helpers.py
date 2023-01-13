@@ -598,24 +598,11 @@ def calc_u_base_lower(z, k, N, H1, H2, A0, D0, X, Y, S, T, B, mode='pos'):
 
     if mode == 'pos':
         E4inf = .5*np.sqrt(np.pi)*D0*np.exp(-1/4*m*N*(D0**2*m*N+4*1j*(H2-1)))
-        term_4a = 1/(2*1j*m*N*(T-S))*(
-            -np.exp(1j*m*N*(z-H2))*np.exp(-(z-1)**2/D0**2))*np.sin(m*z)
-        term_4b = 1/(2*1j*m*N*(T-S))*(E4inf-E4(H2, D0, m, N, H2))*m*np.cos(m*z)
-        term_4 = term_4a+term_4b
-
-        # E4inf = .5*np.sqrt(np.pi)*D0*np.exp(-1/4*m*N*(D0**2*m*N+4*1j*(H2-1)))
-        # term_4 = 1/(2*1j*m*N*(T-S))*(E4inf-E4(H2, D0, m, N, H2))*np.sin(m*z)
+        term_4 = 1/(2*1j*N*(T-S))*(E4inf-E4(H2, D0, m, N, H2))*np.cos(m*z)
 
     else:
         E5inf = .5*np.sqrt(np.pi)*D0*np.exp(-1/4*m*N*(D0**2*m*N-4*1j*(H2-1)))
-        term_4a = -1/(2*1j*m*N*(T+S))*(
-            -np.exp(-1j*m*N*(z-H2))*np.exp(-(z-1)**2/D0**2))*np.sin(m*z)
-        term_4b = -1/(2*1j*m*N*(T+S))*(
-            E5inf-E5(H2, D0, m, N, H2))*m*np.cos(m*z)
-        term_4 = term_4a+term_4b
-
-        # E5inf = .5*np.sqrt(np.pi)*D0*np.exp(-1/4*m*N*(D0**2*m*N-4*1j*(H2-1)))
-        # term_4 = -1/(2*1j*m*N*(T+S))*(E5inf-E5(H2, D0, m, N, H2))*np.sin(m*z)
+        term_4 = -1/(2*1j*N*(T+S))*(E5inf-E5(H2, D0, m, N, H2))*np.cos(m*z)
 
     # term_1_a = -1/m*np.sin(m*z)*np.exp(-z)
     # term_1_a = term_1_a*(B1*np.exp(1j*m*z)+B2*np.exp(-1j*m*z))
@@ -680,7 +667,6 @@ def calc_u_base_middle(
         dDb_z = -dDb_z*np.sqrt(m*np.abs(G))
     dDb_z = dDb_z.astype(complex)
 
-    # PSI
     term_1 = -1/m*(E3(H1, D0, m)-E3(0, D0, m))
     term_1 = term_1*(B1*dDa_z/Da_2+B2*dDb_z/Db_2)
 

@@ -225,6 +225,22 @@ def calc_u_base_lower(z, k, L, D, N, H1, A):
 # positive t mode, upper subdomain
 # @jit(nopython=True)
 def calc_u_base_upper(z, k, L, D, N, H1, A):
+
+    # m = k/A
+    # f1 = (N+1)/2*np.exp(1j*m*H1*(N-1))
+    # f2 = (1-N)/2*np.exp(1j*m*H1*(N+1))
+    # P = f1 + f2
+    # g1 = np.cos(m*H1)+1j*N*np.sin(m*H1)
+    # g2 = np.cos(m*H1)-1j*N*np.sin(m*H1)
+    #
+    # term_1 = -1/(m*P)*np.exp(1j*m*N*z)
+    # term_1 = term_1*(E3(H1, D, m)-E3(0, D, m))
+    #
+    # term_2 = -(
+    #     g1/g2*(E4(z, D, m, N, H1)-E4(H1, D, m, N, H1))
+    #     - (E5(z, D, m, N, H1)-E5(H1, D, m, N, H1)))
+    # term_2 = term_2*np.exp(1j*m*N*(z-H1))/(2*1j*m*N)
+
     m = k/A
     f1 = (N+1)/2*np.exp(1j*m*H1*(N-1))
     f2 = (1-N)/2*np.exp(1j*m*H1*(N+1))
@@ -249,11 +265,19 @@ def calc_u_base_upper(z, k, L, D, N, H1, A):
 
     E4inf = .5*np.sqrt(np.pi)*D*np.exp(-1/4*m*N*(D**2*m*N+4*1j*(H1-1)))
 
+    #
+    # E4inf = .5*np.sqrt(np.pi)*D*np.exp(-1/4*m*N*(D**2*m*N+4*1j*(H1-1)))
+    #
+    # term_3 = -1/(2*1j*m*N)*(E4inf-E4(z, D, m, N, H1))
+    # term_3 = term_3*(g1/g2*np.exp(1j*m*N*(z-H1))-np.exp(-1j*m*N*(z-H1)))
+    #
+    # return term_1, (term_2+term_3)
+
     term_3a = 1/(2*1j*m*N)*np.exp(1j*m*N*(z-H1))*np.exp(-(z-1)**2/D**2)
     term_3a = term_3a*(g1/g2*np.exp(1j*m*N*(z-H1))-np.exp(-1j*m*N*(z-H1)))
 
     term_3b = -1/2*(E4inf-E4(z, D, m, N, H1))
-    term_3b = term_3b*(g1/g2*np.exp(1j*m*N*(z-H1))-np.exp(-1j*m*N*(z-H1)))
+    term_3b = term_3b*(g1/g2*np.exp(1j*m*N*(z-H1))+np.exp(-1j*m*N*(z-H1)))
 
     term_3 = term_3a+term_3b
 
