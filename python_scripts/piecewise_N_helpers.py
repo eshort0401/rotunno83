@@ -15,8 +15,13 @@ def integrate_piecewise_N(
     psi = np.zeros((2, 2, t.size, z.size, x.size), dtype=np.complex64)
     u = np.zeros((2, 2, t.size, z.size, x.size), dtype=np.complex64)
     w = np.zeros((2, 2, t.size, z.size, x.size), dtype=np.complex64)
-    # bq = np.zeros((t.size, z.size, x.size), dtype=np.complex64)
-    # bw = np.zeros((2, t.size, z.size, x.size), dtype=np.complex64)
+    bq = np.zeros((t.size, z.size, x.size), dtype=np.complex64)
+    bw = np.zeros((2, 2, t.size, z.size, x.size), dtype=np.complex64)
+    xi = np.zeros((2, 2, t.size, z.size, x.size), dtype=np.complex64)
+
+    ZZ, TT, XX = np.meshgrid(z, t, x)
+
+    bq = (1/np.pi)*(np.pi/2 + np.arctan(XX/L))*np.sin(TT)*np.exp(-ZZ)
 
     # Define alternative domains
     theta = calc_theta(s, alpha=alpha)
@@ -49,10 +54,11 @@ def integrate_piecewise_N(
             u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf]
         base_fns = [fn*np.exp(-L*k)/(2*A**2) for fn in base_fns]
 
-        psi, u, w = loop(
+        psi, u, w, xi, bw = loop(
             psi, u, w, k, j,
             base_fns[0], base_fns[1], base_fns[2], base_fns[3],
-            base_fns[4], base_fns[5], base_fns[6], base_fns[7], x, t)
+            base_fns[4], base_fns[5], base_fns[6], base_fns[7], x, t,
+            bw, xi, N, H1, z)
 
     print('Integrating upper sub-domain.')
     # Perform numerical integration H1<z
@@ -72,23 +78,27 @@ def integrate_piecewise_N(
             u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf]
         base_fns = [fn*np.exp(-L*k)/(2*A**2) for fn in base_fns]
 
-        psi, u, w = loop(
+        psi, u, w, xi, bw = loop(
             psi, u, w, k, j,
             base_fns[0], base_fns[1], base_fns[2], base_fns[3],
-            base_fns[4], base_fns[5], base_fns[6], base_fns[7], x, t)
+            base_fns[4], base_fns[5], base_fns[6], base_fns[7], x, t,
+            bw, xi, N, H1, z)
 
     psi = (1/np.pi)*np.real(psi)
     u = (1/np.pi)*np.real(u)
     w = -(1/np.pi)*np.real(w)
+    xi = -(1/np.pi)*np.real(xi)
+    bw = -(1/np.pi)*np.real(bw)
 
-    return psi, u, w
+    return psi, u, w, xi, bw, bq
 
 
 @jit(nopython=True)
 def loop(
         psi, u, w, k, j,
         psi_base_1_lf, psi_base_1_hf, psi_base_2_lf, psi_base_2_hf,
-        u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf, x, t):
+        u_base_1_lf, u_base_1_hf, u_base_2_lf, u_base_2_hf,
+        x, t, bw, xi, N, H1, z):
 
     pos_fns = [psi_base_1_lf, psi_base_1_hf, u_base_1_lf, u_base_1_hf]
     neg_fns = [psi_base_2_lf, psi_base_2_hf, u_base_2_lf, u_base_2_hf]
@@ -117,7 +127,26 @@ def loop(
             w[1][0][l, j, i] = np.trapz(psi2_ig_lf*1j*k, k)
             w[0][1][l, j, i] = np.trapz(psi1_ig_hf*1j*k, k)
             w[1][1][l, j, i] = np.trapz(psi2_ig_hf*1j*k, k)
-    return psi, u, w
+
+            # Calc xi
+            xi[0][0][l, j, i] = np.trapz(psi1_ig_lf*k, k)
+            xi[1][0][l, j, i] = np.trapz(-psi2_ig_lf*k, k)
+            xi[0][1][l, j, i] = np.trapz(psi1_ig_hf*k, k)
+            xi[1][1][l, j, i] = np.trapz(-psi2_ig_hf*k, k)
+
+            # Calc bw
+            if z[j] >= H1:
+                bw[0][0][l, j, i] = np.trapz(-N**2*psi1_ig_lf*k, k)
+                bw[1][0][l, j, i] = np.trapz(N**2*psi2_ig_lf*k, k)
+                bw[0][1][l, j, i] = np.trapz(-N**2*psi1_ig_hf*k, k)
+                bw[1][1][l, j, i] = np.trapz(N**2*psi2_ig_hf*k, k)
+            else:
+                bw[0][0][l, j, i] = np.trapz(-psi1_ig_lf*k, k)
+                bw[1][0][l, j, i] = np.trapz(psi2_ig_lf*k, k)
+                bw[0][1][l, j, i] = np.trapz(-psi1_ig_hf*k, k)
+                bw[1][1][l, j, i] = np.trapz(psi2_ig_hf*k, k)
+
+    return psi, u, w, xi, bw
 
 
 @jit(nopython=True)

@@ -111,8 +111,8 @@ def solve_rotunno_case_two(xiN=161,zetaN=81,tauN=32,kN=2001,
     w = np.zeros((xiN,zetaN,tauN))
 
     # Initialise domains
-    xi = np.linspace(-3,3,xiN)
-    zeta = np.linspace(0,6,zetaN)
+    xi = np.linspace(-7,7,xiN)
+    zeta = np.linspace(0,4,zetaN)
     tau = np.arange(0,2*np.pi,delTau)
 
     delS=1/kN
@@ -222,16 +222,19 @@ def solve_piecewise_N(
     t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
     s = np.arange(delS, 1, delS, dtype=np.float64)
 
-    psi, u, w = integrate_piecewise_N(
+    psi, u, w, xi, bw, bq = integrate_piecewise_N(
         x, z, t, s, alpha, L, N, H1, zN, A)
     modes = 2
+
+    # import pdb; pdb.set_trace()
 
     ds = xr.Dataset({
         'psi': (('mode', 'forcing', 't', 'z', 'x'), psi),
         'u': (('mode', 'forcing', 't', 'z', 'x'), u),
         'w': (('mode', 'forcing', 't', 'z', 'x'), w),
-        # 'bq': (('t', 'z', 'x'), bq),
-        # 'bw': (('mode', 't', 'z', 'x'), bw)
+        'bq': (('t', 'z', 'x'), bq),
+        'bw': (('mode', 'forcing', 't', 'z', 'x'), bw),
+        'xi': (('mode', 'forcing', 't', 'z', 'x'), xi),
         },
         {
             'mode': np.arange(1, modes+1), 'forcing': np.arange(1, 3), 't': t,
@@ -239,7 +242,7 @@ def solve_piecewise_N(
         {'L': L})
 
     print('Saving.')
-    for var in ['psi', 'u', 'w', 'x', 'z', 't']:
+    for var in ['psi', 'u', 'w', 'x', 'z', 't', 'xi', 'bw', 'bq']:
         ds[var].attrs['units'] = '-'
 
     if save:
@@ -248,7 +251,10 @@ def solve_piecewise_N(
             encoding={
                 'psi': {'zlib': True, 'complevel': 9},
                 'u': {'zlib': True, 'complevel': 9},
-                'w': {'zlib': True, 'complevel': 9}
+                'w': {'zlib': True, 'complevel': 9},
+                'xi': {'zlib': True, 'complevel': 9},
+                'bw': {'zlib': True, 'complevel': 9},
+                'bq': {'zlib': True, 'complevel': 9}
                 })
     return ds
 
@@ -315,7 +321,7 @@ def solve_piecewise_N_convective(
             encoding={
                 'psi': {'zlib': True, 'complevel': 9},
                 'u': {'zlib': True, 'complevel': 9},
-                'w': {'zlib': True, 'complevel': 9}
+                'w': {'zlib': True, 'complevel': 9},
                 })
     return ds
 
@@ -390,7 +396,7 @@ def solve_continuous_N(
     delS = 1/sN
 
     # Initialise domains
-    x = np.linspace(-4, 4, xN, dtype=np.float64)
+    x = np.linspace(-7, 7, xN, dtype=np.float64)
     # Dont start at zero as exponential integral not defined there
     z1 = np.linspace(0, H1, zN, dtype=np.float64)
     zN_scaled = int(np.floor(zN*(H2-H1)/H1))
@@ -401,7 +407,7 @@ def solve_continuous_N(
     t = np.arange(0, 2*np.pi, del_t, dtype=np.float64)
     s = np.arange(delS, 1, delS, dtype=np.float64)
 
-    psi, u, w = integrate_continuous_N(
+    psi, u, w, xi, bw, bq = integrate_continuous_N(
         x, z, t, s, alpha, L, N, H1, H2, zN, zN_scaled, A)
     modes = 2
 
@@ -409,6 +415,9 @@ def solve_continuous_N(
         'psi': (('mode', 'forcing', 't', 'z', 'x'), psi),
         'u': (('mode', 'forcing', 't', 'z', 'x'), u),
         'w': (('mode', 'forcing', 't', 'z', 'x'), w),
+        'bw': (('mode', 'forcing', 't', 'z', 'x'), bw),
+        'xi': (('mode', 'forcing', 't', 'z', 'x'), xi),
+        'bq': (('t', 'z', 'x'), bq),
         },
         {
             'mode': np.arange(1, modes+1), 'forcing': np.arange(1, 4), 't': t,
@@ -416,7 +425,7 @@ def solve_continuous_N(
         {'L': L})
 
     print('Saving.')
-    for var in ['psi', 'u', 'w', 'x', 'z', 't']:
+    for var in ['psi', 'u', 'w', 'xi', 'bw', 'bq', 'x', 'z', 't']:
         ds[var].attrs['units'] = '-'
 
     if save:
@@ -425,10 +434,12 @@ def solve_continuous_N(
             encoding={
                 'psi': {'zlib': True, 'complevel': 9},
                 'u': {'zlib': True, 'complevel': 9},
-                'w': {'zlib': True, 'complevel': 9}
+                'w': {'zlib': True, 'complevel': 9},
+                'xi': {'zlib': True, 'complevel': 9},
+                'bw': {'zlib': True, 'complevel': 9},
+                'bq': {'zlib': True, 'complevel': 9}
                 })
     return ds
-
 
 
 def solve_continuous_N_convective(
@@ -542,6 +553,7 @@ def assign_units(ds):
     ds.w.attrs['units'] = 'm/s'
     ds.psi.attrs['units'] = 'm^2/s'
     try:
+        ds.xi.attrs['units'] = 'm'
         ds.bq.attrs['units'] = 'm/s^2'
         ds.bw.attrs['units'] = 'm/s^2'
     except:
@@ -583,8 +595,12 @@ def redimensionalise_qian(
     ds['u'] = ds.u*Q0/(N*omega)
     ds['w'] = ds.w*Q0/(N**2)
     ds['psi'] = ds.psi*h*Q0/(N*omega)
-    # ds['bq'] = ds.bq*Q0/omega
-    # ds['bw'] = ds.bw*Q0/omega
+    try:
+        ds['bq'] = ds.bq*Q0/omega
+        ds['bw'] = ds.bw*Q0/omega
+        ds['xi'] = ds.xi*Q0/(N**2)/omega
+    except KeyError:
+        print('bq, bw or xi not present. Skipping.')
     ds.attrs['L'] = ds.attrs['L']*N*h/omega
     # ds.attrs['U'] = ds.attrs['U']*N*h
     ds.attrs['Q0'] = Q0
@@ -629,6 +645,7 @@ def init_fonts():
     rcParams.update({'font.weight': 'normal'})
     rcParams.update({'mathtext.fontset': 'cm'})
 
+
 def get_current_dt_str():
     dt=str(datetime.datetime.now())[0:-7]
     dt=dt.replace(" ", "_")
@@ -637,10 +654,103 @@ def get_current_dt_str():
     return dt
 
 
+def plotDisp(
+        ds, t=0, save=False,
+        fig=None, ax=None, dlev=125, soltype='pwc'):
+
+    init_fonts()
+
+    dz = ds.z[1].values-ds.z[0].values
+    zskip = int(np.ceil(dlev/dz))
+
+    print('Plotting xi.')
+
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+    # import pdb; pdb.set_trace()
+
+    # psi plot
+    if (fig is None) or (ax is None):
+        fig, ax = plt.subplots()
+
+    plt.gca()
+
+    try:
+        if ds.x.attrs['units'] == 'm':
+            x = ds.x/1000
+            z = ds.z/1000
+            xi = ds['xi']/1000
+            ax.set_xlabel('Distance [km]')
+            ax.set_ylabel('Height [km]')
+        else:
+            x = ds.x
+            z = ds.z
+            xi = ds['xi']
+            ax.set_xlabel('Distance [' + ds.x.attrs['units'] + ']')
+            ax.set_ylabel('Height [' + ds.z.attrs['units'] + ']')
+    except:
+        for var in ds.keys():
+            ds['xi'].attrs['units'] = '?'
+
+    lines = []
+
+    for k in range(zskip, len(z), zskip):
+        # import pdb; pdb.set_trace()
+        xik = xi.isel(t=t).isel(z=k) + z[k]
+        line = ax.plot(x, xik, color=colors[0], linewidth=.75)
+        lines.append(line[0])
+
+    # x_max = np.max(x)
+    # x_start, x_end, x_step = nice_bounds(-x_max, x_max, num_ticks=10)
+
+    # plt.xticks(np.arange(-1500, 2000, 500))
+    ax.set_xticks(np.arange(-750, 800, 250))
+    # ax.set_yticks(np.arange(0, 30, 5))
+    # ax.set_yticks(np.arange(0, 25, 2.5), minor=True)
+    ax.set_yticks(np.arange(0, 5, 1))
+    ax.set_yticks(np.arange(0, 4.5, .5), minor=True)
+
+    # import pdb; pdb.set_trace()
+    # ax.plot([x[0], x[-1]], [15, 15], 'k', dashes=(1, 5), zorder=4)
+    # ax.plot([x[0], x[-1]], [19, 19], 'k', dashes=(1, 5), zorder=4)
+
+    # ax.plot([x[0], x[-1]], [17, 17], 'k', dashes=(1, 5), zorder=4)
+
+    # ax.plot([x[0], x[-1]], [2, 2], 'k', dashes=(1, 5), zorder=4)
+
+    if soltype == 'pwc':
+        ax.plot([x[0], x[-1]], [2, 2], 'k', dashes=(1, 5), zorder=4)
+    else:
+        ax.plot([x[0], x[-1]], [1.5, 1.5], 'k', dashes=(1, 5), zorder=4)
+        ax.plot([x[0], x[-1]], [2.5, 2.5], 'k', dashes=(1, 5), zorder=4)
+
+    # plt.title(var + ' [' + ds[var].attrs['units'] + ']')
+    fig.patch.set_facecolor('white')
+    plt.subplots_adjust(hspace=0.3)
+
+    # z_start, z_end, z_step = nice_bounds(0, z[-1], 5)
+    # plt.yticks(np.arange(z_start, z_end+z_step, z_step))
+
+    t_s = int(ds.t.isel(t=t).values + 3600*12)
+    h = int(t_s / 3600)
+    m = int((t_s % 3600) / 60)
+    ax.set_title('{:02d}:{:02d} LST'.format(h, m))
+
+    ax.set_xlim(x[0], x[-1])
+    ax.set_ylim(z[0], z[-1])
+
+    if save:
+        outFile = './../figures/{}_'.format(var)
+        outFile += get_current_dt_str() + '.png'
+        fig.savefig(outFile, dpi=100, writer='imagemagick')
+
+    return fig, ax, lines, x, z, xi, zskip
+
+
 def plotCont(
         ds, var='psi', cmap='RdBu_r', signed=True, t=0, save=False,
         fig=None, ax=None, cbar_steps=10, local_max=False, power_limits=False,
-        abs_max=None):
+        abs_max=None, soltype='pwc'):
 
     init_fonts()
     # plt.close('all')
@@ -696,14 +806,33 @@ def plotCont(
     # x_start, x_end, x_step = nice_bounds(-x_max, x_max, num_ticks=10)
 
     # plt.xticks(np.arange(-1500, 2000, 500))
-    plt.xticks(np.arange(-750, 800, 250))
+    ax.set_xticks(np.arange(-750, 800, 250))
+    # ax.set_yticks(np.arange(0, 30, 5))
+    # ax.set_yticks(np.arange(0, 25, 2.5), minor=True)
+    ax.set_yticks(np.arange(0, 5, 1))
+    ax.set_yticks(np.arange(0, 4.5, .5), minor=True)
+
+    # import pdb; pdb.set_trace()
+    # ax.plot([x[0], x[-1]], [15, 15], 'k', dashes=(1, 5), zorder=4)
+    # ax.plot([x[0], x[-1]], [19, 19], 'k', dashes=(1, 5), zorder=4)
+
+    # ax.plot([x[0], x[-1]], [17, 17], 'k', dashes=(1, 5), zorder=4)
+
+    # ax.plot([x[0], x[-1]], [2, 2], 'k', dashes=(1, 5), zorder=4)
+
+    if soltype == 'pwc':
+        ax.plot([x[0], x[-1]], [2, 2], 'k', dashes=(1, 5), zorder=4)
+    else:
+        ax.plot([x[0], x[-1]], [1.5, 1.5], 'k', dashes=(1, 5), zorder=4)
+        ax.plot([x[0], x[-1]], [2.5, 2.5], 'k', dashes=(1, 5), zorder=4)
 
     if power_limits:
         cbar.formatter.set_powerlimits((0, 0))
     cbar.update_ticks()
 
     cbar.set_label('[' + ds[var].attrs['units'] + ']')
-    # plt.title(var + ' [' + ds[var].attrs['units'] + ']')
+    # cbar.set_label(r'[m/s$^2$]')
+    plt.title(var + ' [' + ds[var].attrs['units'] + ']')
     fig.patch.set_facecolor('white')
     plt.subplots_adjust(hspace=0.3)
 
@@ -723,10 +852,43 @@ def plotCont(
     return fig, ax, contourPlot, levels, x, z
 
 
-def animateCont(ds, var='psi', cmap='RdBu_r'):
+def animateDisp(ds, soltype='pwc'):
 
     plt.ioff()
-    fig, ax, contourPlot, levels, x, z = plotCont(ds, var=var)
+    fig, ax, lines, x, z, xi, zskip = plotDisp(ds, soltype=soltype)
+
+    def update(i):
+        label = 'Timestep {0}'.format(i)
+        print(label)
+
+        kvec = range(zskip, len(z), zskip)
+
+        for j in range(len(lines)):
+
+            k = kvec[j]
+
+            xik = xi.isel(t=i).isel(z=k) + z[k]
+            lines[j].set_data(x, xik)
+
+        # import pdb; pdb.set_trace()
+
+        t_s = int(ds['xi'].t.isel(t=i).values + 3600*12)
+        h = int(t_s / 3600) % 24
+        m = int((t_s % 3600) / 60)
+        ax.set_title('{:02d}:{:02d} LST'.format(h, m))
+        return lines, ax
+
+    anim = FuncAnimation(
+        fig, update, frames=np.arange(0, np.size(ds.t)), interval=200)
+
+    outFile = './../figures/{}_'.format('xi') + get_current_dt_str() + '.gif'
+    anim.save(outFile, dpi=200, writer='imagemagick')
+
+
+def animateCont(ds, var='psi', cmap='RdBu_r', soltype='pwc'):
+
+    plt.ioff()
+    fig, ax, contourPlot, levels, x, z = plotCont(ds, var=var, soltype=soltype)
 
     def update(i):
         label = 'Timestep {0}'.format(i)
@@ -759,13 +921,18 @@ def make_subplot_labels(axes, size=16, x_shift=-0.175, y_shift=1):
 
 def panelCont(
         ds, var='psi', cmap='RdBu_r', t_list=[0, 2, 4, 6], cbar_steps=20,
-        abs_max=None):
+        abs_max=None, soltype='pwc'):
     plt.close('all')
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     for i in range(len(t_list)):
-        plotCont(
-            ds, var=var, t=t_list[i], fig=fig, ax=axes.flatten()[i],
-            cbar_steps=cbar_steps, abs_max=abs_max)
+        if var == 'xi':
+            plotDisp(
+                ds, t=t_list[i], save=False, fig=fig,
+                ax=axes.flatten()[i], soltype=soltype)
+        else:
+            plotCont(
+                ds, var=var, t=t_list[i], fig=fig, ax=axes.flatten()[i],
+                cbar_steps=cbar_steps, abs_max=abs_max, soltype=soltype)
         # axes.flatten()[i].plot([-600, -600], [0, 25], '--', color='grey')
         # axes.flatten()[i].plot([-800, -800], [0, 25], '--', color='grey')
         # axes.flatten()[i].plot([-1000, -1000], [0, 25], '--', color='grey')
@@ -850,28 +1017,34 @@ def plotVelocity(
     contourPlot = ax.contourf(
         x, z, ds.speed.isel(t=t), cmap='Reds', levels=levels)
 
-    skip = int(np.floor(np.size(ds.x)/16))
+    skip_x = int(np.floor(np.size(ds.x)/16))
+    skip_z = int(np.floor(np.size(ds.z)/16))
 
-    sQ = int(np.ceil(skip/2))
+    sQ_x = int(np.ceil(skip_x/2))
+    sQ_z = int(np.ceil(skip_z/2))
     dx = x[1]-x[0]
-    uQ = ds.u[:, sQ::skip, sQ::skip]
-    wQ = ds.w[:, sQ::skip, sQ::skip]
+    uQ = ds.u[:, sQ_z::skip_z, sQ_x::skip_x]
+    wQ = ds.w[:, sQ_z::skip_z, sQ_x::skip_x]
     speedMaxQ = np.amax((uQ**2 + wQ**2)**(1/2)).values
-    scale = (speedMaxQ/(skip*dx)).values
+    scale = (speedMaxQ/(skip_x*dx)).values
 
     ax.quiver(
-        x[sQ::skip], z[sQ::skip], uQ.isel(t=t), wQ.isel(t=t),
-        units='xy', angles='xy', scale=scale)
+        x[sQ_x::skip_x], z[sQ_z::skip_z], uQ.isel(t=t), wQ.isel(t=t),
+        units='xy', angles='xy', scale=.85*scale, width=8)
 
     # plt.title('Velocity [' + ds.u.attrs['units'] + ']')
     cbar = plt.colorbar(contourPlot)
     cbar.set_ticks(levels[::2])
     cbar.set_label('Speed  [' + ds.u.attrs['units'] + ']')
 
+    ax.set_xticks(np.arange(-750, 800, 250))
+    ax.set_yticks(np.arange(0, 5, 1))
+    ax.set_yticks(np.arange(0, 4.5, .5), minor=True)
+
+    # ax.plot([x[0], x[-1]], [2, 2], 'k', dashes=(1, 5), zorder=4)
+
     # z_start, z_end, z_step = nice_bounds(0, z[-1], 5)
     # plt.yticks(np.arange(z_start, z_end+z_step, z_step))
-
-    plt.xticks(np.arange(-750, 1000, 250))
 
     fig.patch.set_facecolor('white')
 
@@ -885,7 +1058,7 @@ def plotVelocity(
         outFile = './../figures/velocity_' + get_current_dt_str() + '.png'
         plt.savefig(outFile, dpi=100, writer='imagemagick')
 
-    return ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z, uQ, wQ
+    return ds, fig, ax, contourPlot, levels, sQ_x, sQ_z, skip_x, skip_z, scale, x, z, uQ, wQ
 
 
 def animateVelocity(ds):
@@ -893,7 +1066,7 @@ def animateVelocity(ds):
     plt.ioff()
     init_fonts()
 
-    ds, fig, ax, contourPlot, levels, sQ, skip, scale, x, z, uQ, wQ = plotVelocity(ds, t=0)
+    ds, fig, ax, contourPlot, levels, sQ_x, sQ_z, skip_x, skip_z, scale, x, z, uQ, wQ = plotVelocity(ds, t=0)
 
     def update(i):
         label = 'Timestep {0}'.format(i)
@@ -902,7 +1075,7 @@ def animateVelocity(ds):
         contourPlot = ax.contourf(
             x, z, ds.speed.isel(t=i), cmap='Reds', levels=levels)
 
-        ax.quiver(x[sQ::skip], z[sQ::skip],
+        ax.quiver(x[sQ_x::skip_x], z[sQ_z::skip_z],
                   uQ.isel(t=i), wQ.isel(t=i),
                   units='xy', angles='xy', scale=scale)
 
