@@ -41,7 +41,7 @@ def calc_rotunno_parameters(theta0=300, delTheta=6, N=0.035,
         beta = omega**2/(N*np.sqrt(omega**2-f**2))
     else:
         beta = omega**2/(N*np.sqrt(f**2-omega**2))
-    Atilde = .5*delTheta*(g/(np.pi*theta0))*h**(-1)*omega**(-3)/(12*60*60)
+    Atilde = .5*h**(-1)*omega**(-3)/(12*60*60)
 
     return beta, Atilde, f, h
 
@@ -554,8 +554,8 @@ def assign_units(ds):
     ds.psi.attrs['units'] = 'm^2/s'
     try:
         ds.xi.attrs['units'] = 'm'
-        ds.bq.attrs['units'] = 'm/s^2'
-        ds.bw.attrs['units'] = 'm/s^2'
+        ds.bq.attrs['units'] = 'm/s^3'
+        ds.bw.attrs['units'] = 'm/s^3'
     except:
         warnings.warn('Buoyancy not present.')
 
@@ -633,13 +633,14 @@ def redimensionalise_channel(ds,h=500,N=0.035,Q0=9.807*(3/300)/(12*3600)):
 
     return ds
 
+
 # Plotting functions
 def init_fonts():
     plt.rc('text', usetex=False)
 
     # Initialise fonts
     rcParams['font.family'] = 'serif'
-    rcParams.update({'font.serif': 'Times New Roman'})
+    rcParams.update({'font.serif': 'FreeSerif'})
     rcParams.update({'mathtext.fontset': 'dejavuserif'})
     rcParams.update({'font.size': 12})
     rcParams.update({'font.weight': 'normal'})
